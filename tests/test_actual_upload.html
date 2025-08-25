@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>实际上传测试</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>实际上传测试</h1>
+    
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <p>
+            <label>选择文件:</label><br>
+            <input type="file" name="file" id="fileInput" required>
+        </p>
+        <p>
+            <input type="submit" value="上传" id="uploadButton">
+        </p>
+    </form>
+    
+    <!-- 进度条 -->
+    <div id="progressContainer" class="progress-container" style="display:none;">
+        <div class="progress-bar" style="width:100%;background-color:#f0f0f0;border-radius:5px;overflow:hidden;height:20px;margin:10px 0;">
+            <div id="progressFill" class="progress-fill" style="height:100%;background-color:#007cba;width:0%;transition:width 0.3s ease;"></div>
+        </div>
+        <div id="progressText" class="progress-text" style="text-align:center;font-size:14px;color:#333;">0%</div>
+        <div id="uploadStatus" class="upload-status" style="margin:10px 0;font-size:14px;"></div>
+        <button id="cancelButton" style="display:none;background:#dc3545;color:white;padding:5px 10px;border:none;border-radius:3px;cursor:pointer;margin-top:10px;">取消上传</button>
+    </div>
+    
+    <script>
+        // 格式化字节数
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 上传进度处理
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('请选择一个文件');
+                return;
+            }
+            
+            // 显示进度条
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const uploadStatus = document.getElementById('uploadStatus');
+            const uploadButton = document.getElementById('uploadButton');
+            const cancelButton = document.getElementById('cancelButton');
+            
+            progressContainer.style.display = 'block';
+            cancelButton.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+            uploadStatus.textContent = '准备上传...';
+            uploadButton.disabled = true;
+            uploadButton.value = '上传中...';
+            
+            // 创建FormData对象
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // 创建XMLHttpRequest对象
+            const xhr = new XMLHttpRequest();
+            
+            // 监听上传进度
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    progressFill.style.width = percentComplete + '%';
+                    progressText.textContent = percentComplete + '%';
+                    uploadStatus.textContent = `已上传 ${formatBytes(e.loaded)} / ${formatBytes(e.total)}`;
+                }
+            });
+            
+            // 监听上传完成
+            xhr.addEventListener('load', function() {
+                console.log("响应状态:", xhr.status);
+                console.log("响应内容:", xhr.responseText);
+                
+                if (xhr.status === 200) {
+                    // 检查响应是否为JSON格式的错误信息
+                    if (xhr.responseText.startsWith('{') && xhr.responseText.endsWith('}')) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.error) {
+                                // 如果是错误响应，显示错误消息
+                                uploadStatus.textContent = '上传失败: ' + response.error;
+                                uploadButton.disabled = false;
+                                uploadButton.value = '上传';
+                                cancelButton.style.display = 'none';
+                                return;
+                            }
+                        } catch (e) {
+                            // JSON解析失败，继续下面的处理
+                        }
+                    }
+                    
+                    // 检查是否为成功消息
+                    if (xhr.responseText === '文件上传成功!') {
+                        progressFill.style.width = '100%';
+                        progressText.textContent = '100%';
+                        uploadStatus.textContent = '上传完成！';
+                        cancelButton.style.display = 'none';
+                        // 延迟刷新页面以显示新文件
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1000);
+                        return;
+                    }
+                    
+                    // 检查是否为HTML格式的错误页面
+                    if (xhr.responseText.includes('class="error"') || (xhr.responseText.includes('<!doctype') && xhr.responseText.includes('error'))) {
+                        uploadStatus.textContent = '上传失败，请查看页面错误信息';
+                        uploadButton.disabled = false;
+                        uploadButton.value = '上传';
+                        cancelButton.style.display = 'none';
+                    } else {
+                        // 默认成功处理
+                        progressFill.style.width = '100%';
+                        progressText.textContent = '100%';
+                        uploadStatus.textContent = '上传完成！';
+                        cancelButton.style.display = 'none';
+                        // 延迟刷新页面以显示新文件
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                } else {
+                    uploadStatus.textContent = '上传失败，请重试';
+                    uploadButton.disabled = false;
+                    uploadButton.value = '上传';
+                    cancelButton.style.display = 'none';
+                }
+            });
+            
+            // 监听上传错误
+            xhr.addEventListener('error', function() {
+                uploadStatus.textContent = '上传出错，请重试';
+                uploadButton.disabled = false;
+                uploadButton.value = '上传';
+                cancelButton.style.display = 'none';
+            });
+            
+            // 取消上传功能
+            cancelButton.onclick = function() {
+                xhr.abort();
+                uploadStatus.textContent = '上传已取消';
+                uploadButton.disabled = false;
+                uploadButton.value = '上传';
+                cancelButton.style.display = 'none';
+                // 重置文件输入框，允许重新选择文件
+                fileInput.value = '';
+                // 重置进度条
+                progressFill.style.width = '0%';
+                progressText.textContent = '0%';
+                setTimeout(function() {
+                    progressContainer.style.display = 'none';
+                }, 2000);
+            };
+            
+            // 发送请求
+            xhr.open('POST', 'http://localhost:5000/upload');
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            // 添加cookie头
+            xhr.setRequestHeader('Cookie', 'session=eyJ1c2VybmFtZSI6ImxpdXlkIn0.aKrzrg.UFaK89B8G3AbOugJNQgISw_YSVQ');
+            xhr.send(formData);
+        });
+    </script>
+</body>
+</html>

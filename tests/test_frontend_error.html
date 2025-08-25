@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>前端错误处理测试</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>前端错误处理测试</h1>
+    
+    <div id="progressContainer" class="progress-container" style="display:block;">
+        <div class="progress-bar" style="width:100%;background-color:#f0f0f0;border-radius:5px;overflow:hidden;height:20px;margin:10px 0;">
+            <div id="progressFill" class="progress-fill" style="height:100%;background-color:#007cba;width:50%;transition:width 0.3s ease;"></div>
+        </div>
+        <div id="progressText" class="progress-text" style="text-align:center;font-size:14px;color:#333;">50%</div>
+        <div id="uploadStatus" class="upload-status" style="margin:10px 0;font-size:14px;">上传中...</div>
+        <button id="cancelButton" style="background:#dc3545;color:white;padding:5px 10px;border:none;border-radius:3px;cursor:pointer;margin-top:10px;">取消上传</button>
+        <button id="uploadButton" disabled style="background:#28a745;color:white;padding:5px 10px;border:none;border-radius:3px;cursor:pointer;margin-top:10px;">上传中...</button>
+    </div>
+    
+    <script>
+        // 模拟XMLHttpRequest对象
+        const xhr = {
+            status: 200,
+            responseText: '{"error": "出于安全考虑，系统不允许上传PHP脚本文件。请上传以下类型的文件：文本文件、图片、文档、压缩包、音频或视频文件。"}'
+        };
+        
+        // 获取页面元素
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const uploadButton = document.getElementById('uploadButton');
+        const cancelButton = document.getElementById('cancelButton');
+        
+        // 模拟上传完成事件处理
+        function simulateUploadComplete() {
+            if (xhr.status === 200) {
+                // 检查响应是否为JSON格式的错误信息
+                if (xhr.responseText.startsWith('{') && xhr.responseText.endsWith('}')) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.error) {
+                            // 如果是错误响应，显示错误消息
+                            uploadStatus.textContent = '上传失败: ' + response.error;
+                            uploadButton.disabled = false;
+                            uploadButton.value = '上传';
+                            cancelButton.style.display = 'none';
+                            console.log("成功显示JSON错误消息");
+                            return;
+                        }
+                    } catch (e) {
+                        // JSON解析失败，继续下面的处理
+                        console.log("JSON解析失败");
+                    }
+                }
+                
+                // 检查是否为成功消息
+                if (xhr.responseText === '文件上传成功!') {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = '100%';
+                    uploadStatus.textContent = '上传完成！';
+                    cancelButton.style.display = 'none';
+                    // 延迟刷新页面以显示新文件
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1000);
+                    console.log("显示成功消息");
+                    return;
+                }
+                
+                // 检查是否为HTML格式的错误页面
+                if (xhr.responseText.includes('class="error"') || (xhr.responseText.includes('<!doctype') && xhr.responseText.includes('error'))) {
+                    uploadStatus.textContent = '上传失败，请查看页面错误信息';
+                    uploadButton.disabled = false;
+                    uploadButton.value = '上传';
+                    cancelButton.style.display = 'none';
+                    console.log("显示HTML错误消息");
+                } else {
+                    // 默认成功处理
+                    progressFill.style.width = '100%';
+                    progressText.textContent = '100%';
+                    uploadStatus.textContent = '上传完成！';
+                    cancelButton.style.display = 'none';
+                    // 延迟刷新页面以显示新文件
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1000);
+                    console.log("显示默认成功消息");
+                }
+            } else {
+                uploadStatus.textContent = '上传失败，请重试';
+                uploadButton.disabled = false;
+                uploadButton.value = '上传';
+                cancelButton.style.display = 'none';
+                console.log("显示HTTP错误消息");
+            }
+        }
+        
+        // 执行测试
+        simulateUploadComplete();
+        
+        // 输出测试结果
+        console.log("上传状态:", uploadStatus.textContent);
+        console.log("上传按钮状态:", uploadButton.disabled ? "禁用" : "启用");
+        console.log("取消按钮状态:", cancelButton.style.display === 'none' ? "隐藏" : "显示");
+    </script>
+</body>
+</html>
