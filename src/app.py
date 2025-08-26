@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 import re
 import logging
+import markdown
 
 # 配置日志
 logging.basicConfig(level=logging.DEBUG)
@@ -73,11 +74,13 @@ login_template = '''
 ALLOWED_EXTENSIONS = {
     'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx', 
     'ppt', 'pptx', 'zip', 'rar', '7z', 'tar', 'gz', 'mp3', 'mp4', 'avi', 'mov',
-    'mpg', 'mpeg', 'wmv', 'flv', 'webm', 'mkv', 'wav', 'ogg', 'ogv', 'm4a'
+    'mpg', 'mpeg', 'wmv', 'flv', 'webm', 'mkv', 'wav', 'ogg', 'ogv', 'm4a',
+    'py', 'js', 'java', 'c', 'cpp', 'html', 'css', 'php', 'go', 'rb', 'pl', 'sh', 'sql',
+    'md', 'yaml', 'yml', 'json', 'xml', 'conf', 'config', 'ini', 'cfg', 'env', 'env.example'
 }
 
 # 可预览的文本文件扩展名
-TEXT_PREVIEW_EXTENSIONS = {'txt', 'md', 'log', 'csv', 'json', 'xml', 'html', 'css', 'js', 'py', 'java', 'c', 'cpp'}
+TEXT_PREVIEW_EXTENSIONS = {'txt', 'md', 'log', 'csv', 'json', 'xml', 'html', 'css', 'js', 'py', 'java', 'c', 'cpp', 'sql', 'yaml', 'yml', 'ini', 'cfg', 'conf', 'env', 'sh', 'pl', 'rb', 'go', 'php'}
 
 # 可预览的图片文件扩展名
 IMAGE_PREVIEW_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
@@ -472,6 +475,10 @@ preview_template = '''
 <head>
     <title>文件预览 - {{ filename }}</title>
     <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;">
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
     <style>
         body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
         h1 { color: #333; }
@@ -496,6 +503,7 @@ preview_template = '''
             margin: 0; 
             font-family: 'Courier New', monospace;
         }
+        code { font-family: 'Courier New', monospace; }
         img { max-width: 100%; height: auto; }
         .pdf-container { width: 100%; height: 80vh; }
         .no-preview { 
@@ -512,6 +520,100 @@ preview_template = '''
             border-radius: 5px;
             margin: 20px 0;
         }
+        /* 代码高亮样式 */
+        .highlight .hll { background-color: #ffffcc }
+        .highlight  { background: #f8f8f8; }
+        .highlight .c { color: #408080; font-style: italic } /* Comment */
+        .highlight .err { border: 1px solid #FF0000 } /* Error */
+        .highlight .k { color: #008000; font-weight: bold } /* Keyword */
+        .highlight .o { color: #666666 } /* Operator */
+        .highlight .cm { color: #408080; font-style: italic } /* Comment.Multiline */
+        .highlight .cp { color: #BC7A00 } /* Comment.Preproc */
+        .highlight .c1 { color: #408080; font-style: italic } /* Comment.Single */
+        .highlight .cs { color: #408080; font-style: italic } /* Comment.Special */
+        .highlight .gd { color: #A00000 } /* Generic.Deleted */
+        .highlight .ge { font-style: italic } /* Generic.Emph */
+        .highlight .gr { color: #FF0000 } /* Generic.Error */
+        .highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+        .highlight .gi { color: #00A000 } /* Generic.Inserted */
+        .highlight .go { color: #888888 } /* Generic.Output */
+        .highlight .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+        .highlight .gs { font-weight: bold } /* Generic.Strong */
+        .highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+        .highlight .gt { color: #0044DD } /* Generic.Traceback */
+        .highlight .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+        .highlight .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+        .highlight .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+        .highlight .kp { color: #008000 } /* Keyword.Pseudo */
+        .highlight .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+        .highlight .kt { color: #B00040 } /* Keyword.Type */
+        .highlight .m { color: #666666 } /* Literal.Number */
+        .highlight .s { color: #BA2121 } /* Literal.String */
+        .highlight .na { color: #7D9029 } /* Name.Attribute */
+        .highlight .nb { color: #008000 } /* Name.Builtin */
+        .highlight .nc { color: #0000FF; font-weight: bold } /* Name.Class */
+        .highlight .no { color: #880000 } /* Name.Constant */
+        .highlight .nd { color: #AA22FF } /* Name.Decorator */
+        .highlight .ni { color: #999999; font-weight: bold } /* Name.Entity */
+        .highlight .ne { color: #D2413A; font-weight: bold } /* Name.Exception */
+        .highlight .nf { color: #0000FF } /* Name.Function */
+        .highlight .nl { color: #A0A000 } /* Name.Label */
+        .highlight .nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+        .highlight .nt { color: #008000; font-weight: bold } /* Name.Tag */
+        .highlight .nv { color: #19177C } /* Name.Variable */
+        .highlight .ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+        .highlight .w { color: #bbbbbb } /* Text.Whitespace */
+        .highlight .mf { color: #666666 } /* Literal.Number.Float */
+        .highlight .mh { color: #666666 } /* Literal.Number.Hex */
+        .highlight .mi { color: #666666 } /* Literal.Number.Integer */
+        .highlight .mo { color: #666666 } /* Literal.Number.Oct */
+        .highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
+        .highlight .sc { color: #BA2121 } /* Literal.String.Char */
+        .highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+        .highlight .s2 { color: #BA2121 } /* Literal.String.Double */
+        .highlight .se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
+        .highlight .sh { color: #BA2121 } /* Literal.String.Heredoc */
+        .highlight .si { color: #BB6688; font-weight: bold } /* Literal.String.Interpol */
+        .highlight .sx { color: #008000 } /* Literal.String.Other */
+        .highlight .sr { color: #BB6688 } /* Literal.String.Regex */
+        .highlight .s1 { color: #BA2121 } /* Literal.String.Single */
+        .highlight .ss { color: #19177C } /* Literal.String.Symbol */
+        .highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
+        .highlight .vc { color: #19177C } /* Name.Variable.Class */
+        .highlight .vg { color: #19177C } /* Name.Variable.Global */
+        .highlight .vi { color: #19177C } /* Name.Variable.Instance */
+        .highlight .il { color: #666666 } /* Literal.Number.Integer.Long */
+        
+        /* Markdown渲染样式 */
+        .markdown-content { font-family: Arial, sans-serif; }
+        .markdown-content h1 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .markdown-content h2 { color: #444; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .markdown-content h3 { color: #555; }
+        .markdown-content code { background-color: #f5f5f5; padding: 2px 4px; border-radius: 3px; font-family: 'Courier New', monospace; }
+        .markdown-content pre { background-color: #f8f8f8; padding: 10px; border-radius: 5px; overflow: auto; }
+        .markdown-content pre code { background-color: transparent; padding: 0; }
+        .markdown-content blockquote { border-left: 4px solid #ddd; padding: 0 15px; color: #666; }
+        .markdown-content ul, .markdown-content ol { padding-left: 30px; }
+        .markdown-content li { margin-bottom: 5px; }
+        .markdown-content a { color: #007cba; text-decoration: none; }
+        .markdown-content a:hover { text-decoration: underline; }
+        .markdown-content table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        .markdown-content th, .markdown-content td { border: 1px solid #ddd; padding: 8px 12px; }
+        .markdown-content th { background-color: #f5f5f5; font-weight: bold; }
+        
+        /* 切换按钮样式 */
+        .toggle-buttons { margin: 10px 0; }
+        .toggle-btn { 
+            background: #007cba; 
+            color: white; 
+            padding: 5px 10px; 
+            border: none; 
+            border-radius: 3px; 
+            cursor: pointer; 
+            margin-right: 10px;
+        }
+        .toggle-btn:hover { background: #005a87; }
+        .toggle-btn.active { background: #28a745; }
     </style>
 </head>
 <body>
@@ -535,8 +637,13 @@ preview_template = '''
             <strong>预览错误:</strong> {{ error }}
         </div>
         {% elif preview_type == 'text' %}
+        <div class="toggle-buttons">
+            <button id="rawBtn" class="toggle-btn active" onclick="toggleView('raw')">纯文本</button>
+            <button id="renderedBtn" class="toggle-btn" onclick="toggleView('rendered')">渲染显示</button>
+        </div>
         <div class="preview-content">
-            <pre>{{ content }}</pre>
+            <pre id="rawContent" style="display: block;">{{ content }}</pre>
+            <div id="renderedContent" style="display: none;"></div>
         </div>
         {% elif preview_type == 'image' %}
         <div class="preview-content">
@@ -554,6 +661,83 @@ preview_template = '''
         </div>
         {% endif %}
     </div>
+    
+    <script>
+        // 获取文件扩展名
+        function getFileExtension(filename) {
+            return filename.split('.').pop().toLowerCase();
+        }
+        
+        // 切换视图
+        function toggleView(view) {
+            const rawBtn = document.getElementById('rawBtn');
+            const renderedBtn = document.getElementById('renderedBtn');
+            const rawContent = document.getElementById('rawContent');
+            const renderedContent = document.getElementById('renderedContent');
+            
+            if (view === 'raw') {
+                rawBtn.classList.add('active');
+                renderedBtn.classList.remove('active');
+                rawContent.style.display = 'block';
+                renderedContent.style.display = 'none';
+            } else {
+                rawBtn.classList.remove('active');
+                renderedBtn.classList.add('active');
+                rawContent.style.display = 'none';
+                renderedContent.style.display = 'block';
+                
+                // 渲染内容
+                renderContent();
+            }
+        }
+        
+        // 渲染内容
+        function renderContent() {
+            const filename = "{{ filename }}";
+            const extension = getFileExtension(filename);
+            const content = {{ content|tojson }};
+            const renderedContent = document.getElementById('renderedContent');
+            
+            if (extension === 'md') {
+                // Markdown渲染
+                const md = markdownit();
+                renderedContent.innerHTML = '<div class="markdown-content">' + md.render(content) + '</div>';
+            } else if (['py', 'js', 'java', 'c', 'cpp', 'html', 'css', 'php', 'sql', 'xml', 'json', 'yaml', 'yml', 'ini', 'cfg', 'conf', 'sh', 'pl', 'rb', 'go'].includes(extension)) {
+                // 代码高亮
+                // 转义HTML特殊字符以提高安全性
+                const escapedContent = content
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+                renderedContent.innerHTML = '<pre><code class="language-' + extension + '">' + escapedContent + '</code></pre>';
+                // 使用highlight.js进行代码高亮
+                if (typeof hljs !== 'undefined' && typeof hljs.highlightAll === 'function') {
+                    hljs.highlightAll();
+                }
+            } else {
+                // 其他文本文件保持原样显示
+                // 转义HTML特殊字符以提高安全性
+                const escapedContent = content
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+                renderedContent.innerHTML = '<pre>' + escapedContent + '</pre>';
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 如果是文本文件，默认显示纯文本视图
+            const rawBtn = document.getElementById('rawBtn');
+            if (rawBtn) {
+                rawBtn.classList.add('active');
+            }
+        });
+    </script>
 </body>
 </html>
 '''
@@ -907,7 +1091,8 @@ def preview_file(filename):
                                     filename=filename,
                                     file_size=file_size,
                                     modified_time=modified_time,
-                                    preview_type='image')
+                                    preview_type='image',
+                                    content='')
     elif preview_type == 'pdf':
         return render_template_string(preview_template, 
                                     filename=filename,
