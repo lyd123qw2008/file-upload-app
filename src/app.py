@@ -34,8 +34,8 @@ MAX_STORAGE_BYTES = int(os.environ.get('MAX_STORAGE_BYTES', 1024 * 1024 * 1024))
 
 # 剪贴板数据存储文件路径
 CLIPBOARD_FILE = os.path.join(UPLOAD_FOLDER, 'clipboard.json')
-# 协同剪贴板数据存储文件路径
-COLLABORATIVE_CLIPBOARD_FILE = os.path.join(UPLOAD_FOLDER, 'collaborative_clipboard.json')
+# 个人剪贴板数据存储文件路径
+PERSONAL_CLIPBOARD_FILE = os.path.join(UPLOAD_FOLDER, 'personal_clipboard.json')
 
 # 初始化剪贴板数据存储
 def init_clipboard_storage():
@@ -43,11 +43,11 @@ def init_clipboard_storage():
         with open(CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
             json.dump({"clipboard_items": []}, f)
 
-# 初始化协同剪贴板数据存储
-def init_collaborative_clipboard_storage():
-    if not os.path.exists(COLLABORATIVE_CLIPBOARD_FILE):
-        with open(COLLABORATIVE_CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
-            json.dump({"collaborative_clipboards": []}, f)
+# 初始化个人剪贴板数据存储
+def init_personal_clipboard_storage():
+    if not os.path.exists(PERSONAL_CLIPBOARD_FILE):
+        with open(PERSONAL_CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
+            json.dump({"personal_clipboards": []}, f)
 
 # 加载剪贴板数据
 def load_clipboard_data():
@@ -65,75 +65,72 @@ def save_clipboard_data(data):
     with open(CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# 加载协同剪贴板数据
-def load_collaborative_clipboard_data():
+# 加载个人剪贴板数据
+def load_personal_clipboard_data():
     try:
-        with open(COLLABORATIVE_CLIPBOARD_FILE, 'r', encoding='utf-8') as f:
+        with open(PERSONAL_CLIPBOARD_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         # 如果文件不存在或解析失败，初始化文件
-        init_collaborative_clipboard_storage()
-        with open(COLLABORATIVE_CLIPBOARD_FILE, 'r', encoding='utf-8') as f:
+        init_personal_clipboard_storage()
+        with open(PERSONAL_CLIPBOARD_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-# 保存协同剪贴板数据
-def save_collaborative_clipboard_data(data):
-    with open(COLLABORATIVE_CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
+# 保存个人剪贴板数据
+def save_personal_clipboard_data(data):
+    with open(PERSONAL_CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# 创建协同剪贴板
-def create_collaborative_clipboard(name, content, creator, collaborators=None):
-    # 对于单用户场景，协作者始终只有创建者本人
-    collaborators = [creator]
-    
-    data = load_collaborative_clipboard_data()
+# 创建个人剪贴板
+def create_personal_clipboard(name, content, creator):
+    # 对于单用户场景，创建者就是所有者
+    data = load_personal_clipboard_data()
     clipboard = {
         "id": str(uuid.uuid4()),
         "name": name,
         "content": content,
         "creator": creator,
-        "collaborators": collaborators,
         "created_at": datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat()
     }
-    data["collaborative_clipboards"].append(clipboard)
-    save_collaborative_clipboard_data(data)
+    data["personal_clipboards"].append(clipboard)
+    save_personal_clipboard_data(data)
     return clipboard
 
-# 获取用户可访问的协同剪贴板
-def get_user_collaborative_clipboards(username):
-    data = load_collaborative_clipboard_data()
-    return [clipboard for clipboard in data["collaborative_clipboards"] 
-            if username in clipboard["collaborators"]]
+# 获取用户创建的个人剪贴板
+def get_user_personal_clipboards(username):
+    data = load_personal_clipboard_data()
+    return [clipboard for clipboard in data["personal_clipboards"] 
+            if clipboard["creator"] == username]
 
-# 获取特定协同剪贴板
-def get_collaborative_clipboard(clipboard_id, username):
-    data = load_collaborative_clipboard_data()
-    for clipboard in data["collaborative_clipboards"]:
-        if clipboard["id"] == clipboard_id and username in clipboard["collaborators"]:
+# 获取特定个人剪贴板
+def get_personal_clipboard(clipboard_id, username):
+    data = load_personal_clipboard_data()
+    for clipboard in data["personal_clipboards"]:
+        if clipboard["id"] == clipboard_id and clipboard["creator"] == username:
             return clipboard
     return None
 
-# 更新协同剪贴板内容
-def update_collaborative_clipboard(clipboard_id, content, username):
-    data = load_collaborative_clipboard_data()
-    for clipboard in data["collaborative_clipboards"]:
-        if clipboard["id"] == clipboard_id and username in clipboard["collaborators"]:
+# 更新个人剪贴板内容
+def update_personal_clipboard(clipboard_id, content, username):
+    data = load_personal_clipboard_data()
+    for clipboard in data["personal_clipboards"]:
+        if clipboard["id"] == clipboard_id and clipboard["creator"] == username:
             clipboard["content"] = content
             clipboard["updated_at"] = datetime.now().isoformat()
-            save_collaborative_clipboard_data(data)
+            save_personal_clipboard_data(data)
             return clipboard
     return None
 
-# 删除协同剪贴板
-def delete_collaborative_clipboard(clipboard_id, username):
-    data = load_collaborative_clipboard_data()
-    # 在单用户场景下，用户可以删除自己创建的剪贴板
-    data["collaborative_clipboards"] = [
-        clipboard for clipboard in data["collaborative_clipboards"] 
+# 删除个人剪贴板
+def delete_personal_clipboard(clipboard_id, username):
+    data = load_personal_clipboard_data()
+    # 用户可以删除自己创建的剪贴板
+    data["personal_clipboards"] = [
+        clipboard for clipboard in data["personal_clipboards"] 
         if not (clipboard["id"] == clipboard_id and clipboard["creator"] == username)
     ]
-    save_collaborative_clipboard_data(data)
+    save_personal_clipboard_data(data)
 
 # 添加剪贴板项目
 def add_clipboard_item(content, owner, is_public=False):
@@ -814,7 +811,7 @@ personal_clipboard_template = '''
         .logout:hover { background: #c82333; }
         .back { background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
         .back:hover { background: #005a87; }
-        .collaborative-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .personal-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
         input[type="text"], textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 3px; }
         input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
         input[type="submit"]:hover { background: #218838; }
@@ -839,7 +836,7 @@ personal_clipboard_template = '''
         </div>
     </div>
     
-    <div class="collaborative-form">
+    <div class="personal-form">
         <h2>创建新的个人剪贴板</h2>
         {% if error %}
         <p style="color: red;">错误: {{ error }}</p>
@@ -860,7 +857,7 @@ personal_clipboard_template = '''
     </div>
     
     <h2>我的个人剪贴板</h2>
-    {% if collaborative_clipboards %}
+    {% if personal_clipboards %}
     <table>
         <thead>
             <tr>
@@ -871,7 +868,7 @@ personal_clipboard_template = '''
             </tr>
         </thead>
         <tbody>
-            {% for clipboard in collaborative_clipboards %}
+            {% for clipboard in personal_clipboards %}
             <tr>
                 <td>{{ clipboard.name }}</td>
                 <td>{{ clipboard.created_at[:19].replace('T', ' ') }}</td>
@@ -906,7 +903,7 @@ personal_clipboard_detail_template = '''
         .logout:hover { background: #c82333; }
         .back { background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
         .back:hover { background: #005a87; }
-        .collaborative-detail-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .personal-detail-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
         textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 3px; }
         input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
         input[type="submit"]:hover { background: #218838; }
@@ -928,7 +925,7 @@ personal_clipboard_detail_template = '''
         <strong>最后更新:</strong> {{ clipboard.updated_at[:19].replace('T', ' ') }}
     </div>
     
-    <div class="collaborative-detail-form">
+    <div class="personal-detail-form">
         <h2>编辑内容</h2>
         {% if error %}
         <p style="color: red;">错误: {{ error }}</p>
@@ -1709,19 +1706,17 @@ def personal_clipboard():
         content = request.form.get('content', '')
         
         if name and content is not None:
-            # 对于单用户场景，创建者就是唯一的协作者
-            collaborators = [username]
             try:
-                create_collaborative_clipboard(name, content, username, collaborators)
+                create_personal_clipboard(name, content, username)
             except Exception as e:
                 error_message = str(e)
     
-    # 获取用户可访问的个人剪贴板
-    collaborative_clipboards = get_user_collaborative_clipboards(username)
+    # 获取用户创建的个人剪贴板
+    personal_clipboards = get_user_personal_clipboards(username)
     
     return render_template_string(personal_clipboard_template, 
                                 username=username, 
-                                collaborative_clipboards=collaborative_clipboards,
+                                personal_clipboards=personal_clipboards,
                                 error=error_message)
 
 # 个人剪贴板详情页面
@@ -1735,7 +1730,7 @@ def personal_clipboard_detail(clipboard_id):
     error_message = None
     
     # 获取个人剪贴板
-    clipboard = get_collaborative_clipboard(clipboard_id, username)
+    clipboard = get_personal_clipboard(clipboard_id, username)
     if not clipboard:
         return "个人剪贴板未找到或无权访问", 404
     
@@ -1743,9 +1738,9 @@ def personal_clipboard_detail(clipboard_id):
         # 处理保存内容
         content = request.form.get('content', '')
         try:
-            update_collaborative_clipboard(clipboard_id, content, username)
+            update_personal_clipboard(clipboard_id, content, username)
             # 更新成功后重新获取剪贴板内容
-            clipboard = get_collaborative_clipboard(clipboard_id, username)
+            clipboard = get_personal_clipboard(clipboard_id, username)
         except Exception as e:
             error_message = str(e)
     
@@ -1762,13 +1757,13 @@ def delete_personal_clipboard_route(clipboard_id):
         return redirect(url_for('login'))
     
     username = session['username']
-    delete_collaborative_clipboard(clipboard_id, username)
+    delete_personal_clipboard(clipboard_id, username)
     
     return redirect(url_for('personal_clipboard'))
 
 # 应用启动时初始化剪贴板存储
 init_clipboard_storage()
-init_collaborative_clipboard_storage()
+init_personal_clipboard_storage()
 
 if __name__ == '__main__':
     # 获取环境变量设置，如果没有设置则默认为False
