@@ -6,6 +6,7 @@ from datetime import datetime
 import re
 import logging
 import markdown
+import uuid
 
 # 配置日志
 logging.basicConfig(level=logging.DEBUG)
@@ -30,6 +31,155 @@ logger.debug("Initialized user: %s", admin_username)
 
 # 最大存储容量（字节），默认1GB
 MAX_STORAGE_BYTES = int(os.environ.get('MAX_STORAGE_BYTES', 1024 * 1024 * 1024))  # 1GB
+
+# 剪贴板数据存储文件路径
+CLIPBOARD_FILE = os.path.join(UPLOAD_FOLDER, 'clipboard.json')
+# 协同剪贴板数据存储文件路径
+COLLABORATIVE_CLIPBOARD_FILE = os.path.join(UPLOAD_FOLDER, 'collaborative_clipboard.json')
+
+# 初始化剪贴板数据存储
+def init_clipboard_storage():
+    if not os.path.exists(CLIPBOARD_FILE):
+        with open(CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
+            json.dump({"clipboard_items": []}, f)
+
+# 初始化协同剪贴板数据存储
+def init_collaborative_clipboard_storage():
+    if not os.path.exists(COLLABORATIVE_CLIPBOARD_FILE):
+        with open(COLLABORATIVE_CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
+            json.dump({"collaborative_clipboards": []}, f)
+
+# 加载剪贴板数据
+def load_clipboard_data():
+    try:
+        with open(CLIPBOARD_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # 如果文件不存在或解析失败，初始化文件
+        init_clipboard_storage()
+        with open(CLIPBOARD_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+# 保存剪贴板数据
+def save_clipboard_data(data):
+    with open(CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+# 加载协同剪贴板数据
+def load_collaborative_clipboard_data():
+    try:
+        with open(COLLABORATIVE_CLIPBOARD_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # 如果文件不存在或解析失败，初始化文件
+        init_collaborative_clipboard_storage()
+        with open(COLLABORATIVE_CLIPBOARD_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+# 保存协同剪贴板数据
+def save_collaborative_clipboard_data(data):
+    with open(COLLABORATIVE_CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+# 创建协同剪贴板
+def create_collaborative_clipboard(name, content, creator, collaborators=None):
+    # 对于单用户场景，协作者始终只有创建者本人
+    collaborators = [creator]
+    
+    data = load_collaborative_clipboard_data()
+    clipboard = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "content": content,
+        "creator": creator,
+        "collaborators": collaborators,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
+    }
+    data["collaborative_clipboards"].append(clipboard)
+    save_collaborative_clipboard_data(data)
+    return clipboard
+
+# 获取用户可访问的协同剪贴板
+def get_user_collaborative_clipboards(username):
+    data = load_collaborative_clipboard_data()
+    return [clipboard for clipboard in data["collaborative_clipboards"] 
+            if username in clipboard["collaborators"]]
+
+# 获取特定协同剪贴板
+def get_collaborative_clipboard(clipboard_id, username):
+    data = load_collaborative_clipboard_data()
+    for clipboard in data["collaborative_clipboards"]:
+        if clipboard["id"] == clipboard_id and username in clipboard["collaborators"]:
+            return clipboard
+    return None
+
+# 更新协同剪贴板内容
+def update_collaborative_clipboard(clipboard_id, content, username):
+    data = load_collaborative_clipboard_data()
+    for clipboard in data["collaborative_clipboards"]:
+        if clipboard["id"] == clipboard_id and username in clipboard["collaborators"]:
+            clipboard["content"] = content
+            clipboard["updated_at"] = datetime.now().isoformat()
+            save_collaborative_clipboard_data(data)
+            return clipboard
+    return None
+
+# 删除协同剪贴板
+def delete_collaborative_clipboard(clipboard_id, username):
+    data = load_collaborative_clipboard_data()
+    # 在单用户场景下，用户可以删除自己创建的剪贴板
+    data["collaborative_clipboards"] = [
+        clipboard for clipboard in data["collaborative_clipboards"] 
+        if not (clipboard["id"] == clipboard_id and clipboard["creator"] == username)
+    ]
+    save_collaborative_clipboard_data(data)
+
+# 添加剪贴板项目
+def add_clipboard_item(content, owner, is_public=False):
+    # 限制剪贴板内容大小（最大1MB）
+    if len(content.encode('utf-8')) > 1024 * 1024:
+        raise ValueError("剪贴板内容不得超过1MB")
+    
+    # 过滤潜在的危险内容
+    # 移除可能的脚本标签（基础过滤）
+    filtered_content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.IGNORECASE | re.DOTALL)
+    
+    data = load_clipboard_data()
+    item = {
+        "id": str(uuid.uuid4()),
+        "content": filtered_content,
+        "owner": owner,
+        "created_at": datetime.now().isoformat(),
+        "is_public": is_public
+    }
+    data["clipboard_items"].append(item)
+    save_clipboard_data(data)
+    return item
+
+# 获取用户的所有剪贴板项目
+def get_user_clipboard_items(username):
+    data = load_clipboard_data()
+    # 返回用户自己的项目和公开项目
+    return [item for item in data["clipboard_items"] 
+            if item["owner"] == username or item["is_public"]]
+
+# 获取特定的剪贴板项目
+def get_clipboard_item(item_id, username):
+    data = load_clipboard_data()
+    for item in data["clipboard_items"]:
+        # 用户可以访问自己的项目或公开项目
+        if item["id"] == item_id and (item["owner"] == username or item["is_public"]):
+            return item
+    return None
+
+# 删除剪贴板项目
+def delete_clipboard_item(item_id, username):
+    data = load_clipboard_data()
+    # 用户只能删除自己的项目
+    data["clipboard_items"] = [item for item in data["clipboard_items"] 
+                              if not (item["id"] == item_id and item["owner"] == username)]
+    save_clipboard_data(data)
 
 # 登录页面模板
 login_template = '''
@@ -144,7 +294,7 @@ upload_template = '''
 <body>
     <div class="header">
         <h1>文件管理</h1>
-        <p>欢迎, {{ username }}! <a href="/logout" class="logout">退出</a></p>
+        <p>欢迎, {{ username }}! <a href="/clipboard">网络剪贴板</a> | <a href="/personal_clipboard">个人剪贴板</a> | <a href="/logout" class="logout">退出</a></p>
     </div>
     
     <div class="storage-info">
@@ -464,6 +614,334 @@ upload_template = '''
             });
         }
     </script>
+</body>
+</html>
+'''
+
+# 剪贴板页面模板
+clipboard_template = '''
+<!doctype html>
+<html>
+<head>
+    <title>网络剪贴板</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        h1 { color: #333; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .logout { background: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+        .logout:hover { background: #c82333; }
+        .back { background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+        .back:hover { background: #005a87; }
+        .clipboard-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 3px; }
+        input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
+        input[type="submit"]:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        tr:hover { background-color: #f5f5f5; }
+        .actions a { margin-right: 10px; text-decoration: none; padding: 5px 10px; border-radius: 3px; }
+        .copy { background: #28a745; color: white; }
+        .delete { background: #dc3545; color: white; }
+        .actions a:hover { opacity: 0.8; }
+        .public { color: #28a745; font-weight: bold; }
+        .private { color: #6c757d; }
+        .content-preview { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>网络剪贴板</h1>
+        <div>
+            <a href="/" class="back">返回文件管理</a>
+            <a href="/personal_clipboard" class="back">个人剪贴板</a>
+            <a href="/logout" class="logout">退出 ({{ username }})</a>
+        </div>
+    </div>
+    
+    <div class="clipboard-form">
+        <h2>添加新内容</h2>
+        {% if error %}
+        <p style="color: red;">错误: {{ error }}</p>
+        {% endif %}
+        <form method="post">
+            <p>
+                <label>内容:</label><br>
+                <textarea name="content" rows="4" placeholder="在此输入要保存到剪贴板的内容..." required></textarea>
+            </p>
+            <p>
+                <input type="checkbox" name="is_public" id="is_public">
+                <label for="is_public">公开内容（其他用户可见）</label>
+            </p>
+            <p>
+                <input type="submit" value="保存到剪贴板">
+            </p>
+        </form>
+    </div>
+    
+    <h2>剪贴板内容</h2>
+    {% if clipboard_items %}
+    <table>
+        <thead>
+            <tr>
+                <th>内容预览</th>
+                <th>所有者</th>
+                <th>可见性</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in clipboard_items %}
+            <tr>
+                <td class="content-preview">{{ item.content[:50] }}{% if item.content|length > 50 %}...{% endif %}</td>
+                <td>{{ item.owner }}</td>
+                <td>
+                    {% if item.is_public %}
+                    <span class="public">公开</span>
+                    {% else %}
+                    <span class="private">私有</span>
+                    {% endif %}
+                </td>
+                <td>{{ item.created_at[:19].replace('T', ' ') }}</td>
+                <td class="actions">
+                    {% if item.is_public %}
+                    <a href="/clipboard/public/{{ item.id }}" class="copy" target="_blank">复制链接</a>
+                    {% else %}
+                    <a href="/clipboard/get/{{ item.id }}" class="copy" target="_blank">复制</a>
+                    {% endif %}
+                    {% if item.owner == username %}
+                    <a href="/clipboard/delete/{{ item.id }}" class="delete" onclick="return confirm('确定要删除此剪贴板内容吗？')">删除</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>剪贴板中没有内容。</p>
+    {% endif %}
+    
+    <script>
+        // 复制到剪贴板的辅助函数
+        function copyToClipboard(text, successMessage, fallbackLabel) {
+            // 首先尝试使用现代Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert(successMessage);
+                }).catch(err => {
+                    console.error('Clipboard API 失败:', err);
+                    // 如果Clipboard API失败，使用降级方案
+                    fallbackCopyTextToClipboard(text, fallbackLabel);
+                });
+            } else {
+                // 如果不支持Clipboard API，使用降级方案
+                fallbackCopyTextToClipboard(text, fallbackLabel);
+            }
+        }
+        
+        // 降级方案：使用临时textarea元素
+        function fallbackCopyTextToClipboard(text, label) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                if (successful) {
+                    alert(label + '已复制到剪贴板');
+                } else {
+                    // 如果execCommand也失败，显示提示框
+                    prompt('请手动复制 ' + label + ':', text);
+                }
+            } catch (err) {
+                console.error('execCommand 失败:', err);
+                document.body.removeChild(textArea);
+                // 显示提示框让用户手动复制
+                prompt('请手动复制 ' + label + ':', text);
+            }
+        }
+        
+        // 添加复制到剪贴板功能
+        document.querySelectorAll('.copy').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = this.href;
+                
+                // 检查是否是复制链接操作（公开项目）
+                if (this.textContent === '复制链接') {
+                    // 复制完整链接到剪贴板
+                    const fullUrl = url.startsWith('http') ? url : window.location.origin + url;
+                    copyToClipboard(fullUrl, '链接已复制到剪贴板', '链接');
+                } else {
+                    // 复制内容到剪贴板
+                    fetch(url)
+                        .then(response => response.text())
+                        .then(text => {
+                            copyToClipboard(text, '内容已复制到剪贴板', '内容');
+                        })
+                        .catch(err => {
+                            console.error('获取内容失败:', err);
+                            alert('获取内容失败，请重试');
+                        });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+'''
+
+# 个人剪贴板列表页面模板
+personal_clipboard_template = '''
+<!doctype html>
+<html>
+<head>
+    <title>个人剪贴板</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        h1 { color: #333; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .logout { background: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+        .logout:hover { background: #c82333; }
+        .back { background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+        .back:hover { background: #005a87; }
+        .collaborative-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        input[type="text"], textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 3px; }
+        input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
+        input[type="submit"]:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        tr:hover { background-color: #f5f5f5; }
+        .actions a { margin-right: 10px; text-decoration: none; padding: 5px 10px; border-radius: 3px; }
+        .view { background: #007cba; color: white; }
+        .delete { background: #dc3545; color: white; }
+        .actions a:hover { opacity: 0.8; }
+        .content-preview { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>个人剪贴板</h1>
+        <div>
+            <a href="/clipboard" class="back">返回网络剪贴板</a>
+            <a href="/" class="back">返回文件管理</a>
+            <a href="/logout" class="logout">退出 ({{ username }})</a>
+        </div>
+    </div>
+    
+    <div class="collaborative-form">
+        <h2>创建新的个人剪贴板</h2>
+        {% if error %}
+        <p style="color: red;">错误: {{ error }}</p>
+        {% endif %}
+        <form method="post">
+            <p>
+                <label>名称:</label><br>
+                <input type="text" name="name" placeholder="剪贴板名称" required>
+            </p>
+            <p>
+                <label>初始内容:</label><br>
+                <textarea name="content" rows="4" placeholder="初始内容..."></textarea>
+            </p>
+            <p>
+                <input type="submit" value="创建剪贴板">
+            </p>
+        </form>
+    </div>
+    
+    <h2>我的个人剪贴板</h2>
+    {% if collaborative_clipboards %}
+    <table>
+        <thead>
+            <tr>
+                <th>名称</th>
+                <th>创建时间</th>
+                <th>最后更新</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for clipboard in collaborative_clipboards %}
+            <tr>
+                <td>{{ clipboard.name }}</td>
+                <td>{{ clipboard.created_at[:19].replace('T', ' ') }}</td>
+                <td>{{ clipboard.updated_at[:19].replace('T', ' ') }}</td>
+                <td class="actions">
+                    <a href="/personal_clipboard/{{ clipboard.id }}" class="view">查看/编辑</a>
+                    <a href="/personal_clipboard/delete/{{ clipboard.id }}" class="delete" onclick="return confirm('确定要删除 {{ clipboard.name }} 吗？')">删除</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>没有个人剪贴板。</p>
+    {% endif %}
+</body>
+</html>
+'''
+
+# 个人剪贴板详情页面模板
+personal_clipboard_detail_template = '''
+<!doctype html>
+<html>
+<head>
+    <title>个人剪贴板 - {{ clipboard.name }}</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        h1 { color: #333; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .logout { background: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+        .logout:hover { background: #c82333; }
+        .back { background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+        .back:hover { background: #005a87; }
+        .collaborative-detail-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 3px; }
+        input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
+        input[type="submit"]:hover { background: #218838; }
+        .info { background: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>个人剪贴板 - {{ clipboard.name }}</h1>
+        <div>
+            <a href="/personal_clipboard" class="back">返回列表</a>
+            <a href="/personal_clipboard/{{ clipboard.id }}" class="back">刷新</a>
+            <a href="/logout" class="logout">退出 ({{ username }})</a>
+        </div>
+    </div>
+    
+    <div class="info">
+        <strong>创建时间:</strong> {{ clipboard.created_at[:19].replace('T', ' ') }}<br>
+        <strong>最后更新:</strong> {{ clipboard.updated_at[:19].replace('T', ' ') }}
+    </div>
+    
+    <div class="collaborative-detail-form">
+        <h2>编辑内容</h2>
+        {% if error %}
+        <p style="color: red;">错误: {{ error }}</p>
+        {% endif %}
+        <form method="post">
+            <p>
+                <textarea name="content" rows="15">{{ clipboard.content }}</textarea>
+            </p>
+            <p>
+                <input type="submit" value="保存内容">
+            </p>
+        </form>
+    </div>
 </body>
 </html>
 '''
@@ -1145,6 +1623,152 @@ def delete_selected_files():
                 deleted_count += 1
     
     return {'success': True, 'deleted_count': deleted_count}
+
+# 剪贴板页面路由
+@app.route('/clipboard', methods=['GET', 'POST'])
+def clipboard():
+    # 检查用户是否已登录
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    username = session['username']
+    error_message = None
+    
+    if request.method == 'POST':
+        # 处理添加新剪贴板内容
+        content = request.form.get('content', '')
+        is_public = request.form.get('is_public') == 'on'
+        
+        if content:
+            try:
+                add_clipboard_item(content, username, is_public)
+            except ValueError as e:
+                error_message = str(e)
+    
+    # 获取用户的剪贴板项目
+    clipboard_items = get_user_clipboard_items(username)
+    
+    # 按创建时间倒序排列
+    clipboard_items.sort(key=lambda x: x['created_at'], reverse=True)
+    
+    return render_template_string(clipboard_template, 
+                                username=username, 
+                                clipboard_items=clipboard_items,
+                                error=error_message)
+
+# 删除剪贴板项目的路由
+@app.route('/clipboard/delete/<item_id>')
+def delete_clipboard_item_route(item_id):
+    # 检查用户是否已登录
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    username = session['username']
+    delete_clipboard_item(item_id, username)
+    
+    return redirect(url_for('clipboard'))
+
+# 获取剪贴板内容的API路由（需要认证）
+@app.route('/clipboard/get/<item_id>')
+def get_clipboard_item_route(item_id):
+    # 检查用户是否已登录
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    username = session['username']
+    item = get_clipboard_item(item_id, username)
+    
+    if item:
+        return item['content']
+    else:
+        return "剪贴板项目未找到或无权访问", 404
+
+# 获取公开剪贴板内容的路由（无需认证）
+@app.route('/clipboard/public/<item_id>')
+def get_public_clipboard_item_route(item_id):
+    data = load_clipboard_data()
+    for item in data["clipboard_items"]:
+        if item["id"] == item_id and item["is_public"]:
+            return item['content']
+    
+    return "公开剪贴板项目未找到", 404
+
+# 个人剪贴板列表页面
+@app.route('/personal_clipboard', methods=['GET', 'POST'])
+def personal_clipboard():
+    # 检查用户是否已登录
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    username = session['username']
+    error_message = None
+    
+    if request.method == 'POST':
+        # 处理创建新的个人剪贴板
+        name = request.form.get('name', '')
+        content = request.form.get('content', '')
+        
+        if name and content is not None:
+            # 对于单用户场景，创建者就是唯一的协作者
+            collaborators = [username]
+            try:
+                create_collaborative_clipboard(name, content, username, collaborators)
+            except Exception as e:
+                error_message = str(e)
+    
+    # 获取用户可访问的个人剪贴板
+    collaborative_clipboards = get_user_collaborative_clipboards(username)
+    
+    return render_template_string(personal_clipboard_template, 
+                                username=username, 
+                                collaborative_clipboards=collaborative_clipboards,
+                                error=error_message)
+
+# 个人剪贴板详情页面
+@app.route('/personal_clipboard/<clipboard_id>', methods=['GET', 'POST'])
+def personal_clipboard_detail(clipboard_id):
+    # 检查用户是否已登录
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    username = session['username']
+    error_message = None
+    
+    # 获取个人剪贴板
+    clipboard = get_collaborative_clipboard(clipboard_id, username)
+    if not clipboard:
+        return "个人剪贴板未找到或无权访问", 404
+    
+    if request.method == 'POST':
+        # 处理保存内容
+        content = request.form.get('content', '')
+        try:
+            update_collaborative_clipboard(clipboard_id, content, username)
+            # 更新成功后重新获取剪贴板内容
+            clipboard = get_collaborative_clipboard(clipboard_id, username)
+        except Exception as e:
+            error_message = str(e)
+    
+    return render_template_string(personal_clipboard_detail_template, 
+                                username=username, 
+                                clipboard=clipboard,
+                                error=error_message)
+
+# 删除个人剪贴板的路由
+@app.route('/personal_clipboard/delete/<clipboard_id>')
+def delete_personal_clipboard_route(clipboard_id):
+    # 检查用户是否已登录
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    username = session['username']
+    delete_collaborative_clipboard(clipboard_id, username)
+    
+    return redirect(url_for('personal_clipboard'))
+
+# 应用启动时初始化剪贴板存储
+init_clipboard_storage()
+init_collaborative_clipboard_storage()
 
 if __name__ == '__main__':
     # 获取环境变量设置，如果没有设置则默认为False
