@@ -289,6 +289,34 @@ upload_template = '''
             color: #333; 
         }
         .upload-status { margin: 10px 0; font-size: 14px; }
+        
+        /* 拖拽上传区域样式 */
+        .drop-zone {
+            border: 2px dashed #007cba;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+            background-color: #e3f2fd;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .drop-zone.dragover {
+            background-color: #bbdefb;
+            border-color: #005a87;
+        }
+        .drop-zone-text {
+            color: #007cba;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .drop-zone-highlight {
+            font-weight: bold;
+        }
+        .drop-zone-or {
+            color: #666;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -318,6 +346,15 @@ upload_template = '''
         <p class="error">{{ error }}</p>
         {% endif %}
         <form id="uploadForm" method="post" enctype="multipart/form-data">
+            <!-- 拖拽上传区域 -->
+            <div id="dropZone" class="drop-zone">
+                <div class="drop-zone-text">
+                    <span class="drop-zone-highlight">拖拽文件到此处</span> 或 <span class="drop-zone-highlight">点击选择文件</span>
+                </div>
+                <div class="drop-zone-or">─────────── 或 ───────────</div>
+                <div class="drop-zone-text">使用下方的传统文件选择方式</div>
+            </div>
+            
             <p>
                 <label>选择文件:</label><br>
                 <input type="file" name="file" id="fileInput" required>
@@ -612,6 +649,74 @@ upload_template = '''
                 console.error('Error:', error);
                 alert('删除文件时发生错误');
             });
+        }
+        
+        // 拖拽上传功能
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadForm = document.getElementById('uploadForm');
+        
+        // 阻止浏览器默认的拖拽行为
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        // 添加拖拽高亮效果
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        // 处理文件拖拽放下事件
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        // 点击拖拽区域时触发文件选择
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // 文件输入框变化时触发上传
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                // 触发表单提交
+                uploadForm.dispatchEvent(new Event('submit'));
+            }
+        });
+        
+        // 阻止默认行为的函数
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // 添加高亮效果
+        function highlight() {
+            dropZone.classList.add('dragover');
+        }
+        
+        // 移除高亮效果
+        function unhighlight() {
+            dropZone.classList.remove('dragover');
+        }
+        
+        // 处理拖拽放下的文件
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                // 只处理第一个文件，保持与传统上传方式一致
+                const file = files[0];
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                // 触发表单提交
+                uploadForm.dispatchEvent(new Event('submit'));
+            }
         }
     </script>
 </body>
