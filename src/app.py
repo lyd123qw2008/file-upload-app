@@ -232,6 +232,9 @@ TEXT_PREVIEW_EXTENSIONS = {'txt', 'md', 'log', 'csv', 'json', 'xml', 'html', 'cs
 # 可预览的图片文件扩展名
 IMAGE_PREVIEW_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
 
+# 压缩包文件扩展名
+ARCHIVE_EXTENSIONS = {'zip', 'rar', '7z', 'tar', 'gz'}
+
 # 上传页面模板
 upload_template = '''
 <!doctype html>
@@ -1129,6 +1132,11 @@ preview_template = '''
             <embed src="/download/{{ filename }}" type="application/pdf" class="pdf-container">
             <p>如果上方没有显示PDF，请<a href="/download/{{ filename }}">点击下载</a>查看。</p>
         </div>
+        {% elif preview_type == 'archive' %}
+        <div class="no-preview">
+            <p>这是一个压缩包文件（{{ filename.split('.')[-1].lower()|upper }}格式）。</p>
+            <p><a href="/download/{{ filename }}" class="download">点击下载</a>文件到本地解压查看内容。</p>
+        </div>
         {% else %}
         <div class="no-preview">
             <p>该文件类型不支持在线预览。</p>
@@ -1170,8 +1178,15 @@ preview_template = '''
         function renderContent() {
             const filename = "{{ filename }}";
             const extension = getFileExtension(filename);
-            const content = {{ content|tojson }};
+            // 检查content是否存在，避免未定义错误
+            const content = {{ content|tojson if content else '""' }};
             const renderedContent = document.getElementById('renderedContent');
+            
+            // 如果没有内容可渲染，直接返回
+            if (!content) {
+                renderedContent.innerHTML = '<p>该文件类型不支持渲染显示。</p>';
+                return;
+            }
             
             if (extension === 'md') {
                 // Markdown渲染
@@ -1491,6 +1506,8 @@ def get_preview_type(filename):
             return 'image'
         elif ext == 'pdf':
             return 'pdf'
+        elif ext in ARCHIVE_EXTENSIONS:
+            return 'archive'
     return 'unknown'
 
 # 读取文本文件内容（带大小限制）
@@ -1574,6 +1591,12 @@ def preview_file(filename):
                                     file_size=file_size,
                                     modified_time=modified_time,
                                     preview_type='pdf')
+    elif preview_type == 'archive':
+        return render_template_string(preview_template, 
+                                    filename=filename,
+                                    file_size=file_size,
+                                    modified_time=modified_time,
+                                    preview_type='archive')
     else:
         return render_template_string(preview_template, 
                                     filename=filename,
