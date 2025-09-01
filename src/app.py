@@ -186,6 +186,7 @@ login_template = '''
     <title>登录</title>
     <meta charset="utf-8">
     <style>
+        * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
         h1 { color: #333; }
         form { background: #f5f5f5; padding: 20px; border-radius: 5px; }
@@ -203,11 +204,11 @@ login_template = '''
     <form method="post">
         <p>
             <label>用户名:</label>
-            <input type="text" name="username" required>
+            <input type="text" name="username" required style="margin-right: 10px;">
         </p>
         <p>
             <label>密码:</label>
-            <input type="password" name="password" required>
+            <input type="password" name="password" required style="margin-right: 10px;">
         </p>
         <p>
             <input type="submit" value="登录">
@@ -243,13 +244,14 @@ upload_template = '''
     <title>文件管理</title>
     <meta charset="utf-8">
     <style>
+        * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
         h1 { color: #333; }
         .header { display: flex; justify-content: space-between; align-items: center; }
         .logout { background: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
         .logout:hover { background: #c82333; }
         .upload-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-        input[type="file"] { margin: 10px 0; }
+        input[type="file"] { margin: 10px 0; width: 100%; }
         input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
         input[type="submit"]:hover { background: #218838; }
         input[type="submit"]:disabled { background: #6c757d; cursor: not-allowed; }
@@ -731,6 +733,7 @@ clipboard_template = '''
     <title>网络剪贴板</title>
     <meta charset="utf-8">
     <style>
+        * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
         h1 { color: #333; }
         .header { display: flex; justify-content: space-between; align-items: center; }
@@ -773,7 +776,7 @@ clipboard_template = '''
         <form method="post">
             <p>
                 <label>内容:</label><br>
-                <textarea name="content" rows="4" placeholder="在此输入要保存到剪贴板的内容..." required></textarea>
+                <textarea name="content" rows="4" placeholder="在此输入要保存到剪贴板的内容..." required style="margin-right: 10px;"></textarea>
             </p>
             <p>
                 <input type="checkbox" name="is_public" id="is_public">
@@ -912,6 +915,7 @@ personal_clipboard_template = '''
     <title>个人剪贴板</title>
     <meta charset="utf-8">
     <style>
+        * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
         h1 { color: #333; }
         .header { display: flex; justify-content: space-between; align-items: center; }
@@ -952,11 +956,11 @@ personal_clipboard_template = '''
         <form method="post">
             <p>
                 <label>名称:</label><br>
-                <input type="text" name="name" placeholder="剪贴板名称" required>
+                <input type="text" name="name" placeholder="剪贴板名称" required style="margin-right: 10px;">
             </p>
             <p>
                 <label>初始内容:</label><br>
-                <textarea name="content" rows="4" placeholder="初始内容..."></textarea>
+                <textarea name="content" rows="4" placeholder="初始内容..." style="margin-right: 10px;"></textarea>
             </p>
             <p>
                 <input type="submit" value="创建剪贴板">
@@ -1004,6 +1008,7 @@ personal_clipboard_detail_template = '''
     <title>个人剪贴板 - {{ clipboard.name }}</title>
     <meta charset="utf-8">
     <style>
+        * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
         h1 { color: #333; }
         .header { display: flex; justify-content: space-between; align-items: center; }
@@ -1040,7 +1045,7 @@ personal_clipboard_detail_template = '''
         {% endif %}
         <form method="post">
             <p>
-                <textarea name="content" rows="15">{{ clipboard.content }}</textarea>
+                <textarea name="content" rows="15" style="margin-right: 10px;">{{ clipboard.content }}</textarea>
             </p>
             <p>
                 <input type="submit" value="保存内容">
@@ -1075,10 +1080,11 @@ preview_template = '''
         .preview-content { 
             border: 1px solid #ddd; 
             border-radius: 5px; 
-            padding: 15px; 
+            padding: 0; 
             max-height: 70vh; 
             overflow: auto; 
             background: white;
+            box-sizing: border-box;
         }
         pre { 
             white-space: pre-wrap; 
@@ -1087,6 +1093,13 @@ preview_template = '''
             font-family: 'Courier New', monospace;
         }
         code { font-family: 'Courier New', monospace; }
+        /* 调整highlight.js的默认样式以匹配纯文本视图 */
+        pre code.hljs {
+            padding: 0 !important;
+            background: transparent !important;
+            display: block;
+            overflow-x: auto;
+        }
         img { max-width: 100%; height: auto; }
         .pdf-container { width: 100%; height: 80vh; }
         .no-preview { 
@@ -1225,8 +1238,8 @@ preview_template = '''
             <button id="renderedBtn" class="toggle-btn" onclick="toggleView('rendered')">渲染显示</button>
         </div>
         <div class="preview-content">
-            <pre id="rawContent" style="display: block;">{{ content }}</pre>
-            <div id="renderedContent" style="display: none;"></div>
+            <pre id="rawContent" style="display: block; padding: 15px; margin: 0;">{{ content }}</pre>
+            <div id="renderedContent" style="display: none; padding: 15px;"></div>
         </div>
         {% elif preview_type == 'image' %}
         <div class="preview-content">
