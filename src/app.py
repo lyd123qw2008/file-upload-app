@@ -1,4 +1,4 @@
-from flask import Flask, request, send_from_directory, redirect, url_for, render_template_string, session, abort
+from flask import Flask, request, send_from_directory, redirect, url_for, render_template_string, session, abort, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import json
@@ -7,6 +7,11 @@ import re
 import logging
 import markdown
 import uuid
+import random
+import string
+import io
+import base64
+from PIL import Image, ImageDraw, ImageFont
 
 # 配置日志
 logging.basicConfig(level=logging.DEBUG)
@@ -48,6 +53,102 @@ def init_personal_clipboard_storage():
     if not os.path.exists(PERSONAL_CLIPBOARD_FILE):
         with open(PERSONAL_CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
             json.dump({"personal_clipboards": []}, f)
+
+# 生成验证码
+def generate_captcha_text(length=4):
+    """生成随机验证码文本"""
+    characters = string.digits  # 只使用数字
+    return ''.join(random.choice(characters) for _ in range(length))
+
+# 生成验证码图片
+def generate_captcha_image(text):
+    """生成验证码图片"""
+    width = 120
+    height = 40
+
+    # 创建图片
+    image = Image.new('RGB', (width, height), color=(255, 255, 255))
+    draw = ImageDraw.Draw(image)
+
+    try:
+        # 尝试使用DejaVu字体
+        font_size = 32
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+    except:
+        try:
+            # 尝试使用Liberation字体
+            font_size = 32
+            font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", font_size)
+        except:
+            try:
+                # 尝试使用其他字体路径
+                font_size = 32
+                font = ImageFont.truetype("/usr/share/fonts/dejavu/DejaVuSans.ttf", font_size)
+            except:
+                # 使用默认字体并手动调整大小
+                font = ImageFont.load_default()
+                font_size = 24
+
+    # 计算字符位置，使4个数字均匀分布并最大化利用空间
+    char_width = width // len(text)
+
+    # 绘制文本
+    for i, char in enumerate(text):
+        # 计算字符位置，居中显示
+        x = i * char_width + (char_width // 2) - (font_size // 3)
+        y = random.randint(2, 8)  # 最小化垂直偏移，让字体更填满
+        angle = random.randint(-3, 3)  # 最小化旋转，保持可读性
+
+        # 创建字符图像，使用最大可能的尺寸
+        char_img_size = int(font_size * 1.2)
+        char_image = Image.new('RGBA', (char_img_size, char_img_size), (255, 255, 255, 0))
+        char_draw = ImageDraw.Draw(char_image)
+
+        # 尝试更大的字体
+        try:
+            big_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+        except:
+            try:
+                big_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", font_size)
+            except:
+                big_font = font
+
+        char_draw.text((0, 0), char, font=big_font, fill=(0, 0, 0))
+
+        # 旋转字符
+        char_image = char_image.rotate(angle, expand=False)
+
+        # 将字符粘贴到主图片上，调整位置确保填满
+        final_x = max(0, min(x, width - char_img_size))
+        final_y = max(0, min(y, height - char_img_size))
+        image.paste(char_image, (int(final_x), int(final_y)), char_image)
+
+    # 添加干扰线
+    for _ in range(5):
+        x1 = random.randint(0, width)
+        y1 = random.randint(0, height)
+        x2 = random.randint(0, width)
+        y2 = random.randint(0, height)
+        draw.line([(x1, y1), (x2, y2)], fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), width=1)
+
+    # 添加干扰点
+    for _ in range(30):
+        x = random.randint(0, width)
+        y = random.randint(0, height)
+        draw.point((x, y), fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
+
+    # 将图片转换为base64
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    return f"data:image/png;base64,{img_str}"
+
+# 验证验证码
+def validate_captcha(user_input, session_captcha):
+    """验证用户输入的验证码是否正确"""
+    if not session_captcha or not user_input:
+        return False
+    return user_input.upper() == session_captcha.upper()
 
 # 加载剪贴板数据
 def load_clipboard_data():
@@ -194,6 +295,11 @@ login_template = '''
         input[type="submit"] { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
         input[type="submit"]:hover { background: #005a87; }
         .error { color: red; }
+        .captcha-container { display: flex; align-items: center; gap: 10px; }
+        .captcha-image { border: 1px solid #ddd; border-radius: 3px; cursor: pointer; }
+        .captcha-input { flex: 1; }
+        .refresh-btn { background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .refresh-btn:hover { background: #218838; }
     </style>
 </head>
 <body>
@@ -211,9 +317,32 @@ login_template = '''
             <input type="password" name="password" required style="margin-right: 10px;">
         </p>
         <p>
+            <label>验证码:</label>
+            <div class="captcha-container">
+                <input type="text" name="captcha" class="captcha-input" placeholder="请输入验证码" required>
+                <img src="{{ captcha_image }}" alt="验证码" class="captcha-image" onclick="refreshCaptcha()" title="点击刷新验证码">
+                <button type="button" class="refresh-btn" onclick="refreshCaptcha()">刷新</button>
+            </div>
+        </p>
+        <p>
             <input type="submit" value="登录">
         </p>
     </form>
+
+    <script>
+        function refreshCaptcha() {
+            // 添加时间戳防止缓存
+            const timestamp = new Date().getTime();
+            fetch('/captcha?' + timestamp)
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('.captcha-image').src = data.captcha_image;
+                })
+                .catch(error => {
+                    console.error('获取验证码失败:', error);
+                });
+        }
+    </script>
 </body>
 </html>
 '''
@@ -1350,29 +1479,66 @@ preview_template = '''
 </html>
 '''
 
+# 验证码生成路由
+@app.route('/captcha')
+def captcha():
+    """生成新的验证码"""
+    captcha_text = generate_captcha_text()
+    session['captcha'] = captcha_text
+    captcha_image = generate_captcha_image(captcha_text)
+    return {'captcha_image': captcha_image}
+
 # 登录路由
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         # 检查表单字段是否存在
-        if 'username' not in request.form or 'password' not in request.form:
-            return render_template_string(login_template, error='请填写用户名和密码')
-        
+        if 'username' not in request.form or 'password' not in request.form or 'captcha' not in request.form:
+            # 生成新的验证码图片，使用session中的验证码文本
+            current_captcha = session.get('captcha', generate_captcha_text())
+            session['captcha'] = current_captcha  # 确保session中有验证码
+            captcha_image = generate_captcha_image(current_captcha)
+            return render_template_string(login_template, captcha_image=captcha_image, error='请填写完整的登录信息')
+
         username = request.form['username']
         password = request.form['password']
+        captcha = request.form['captcha']
+
         logger.debug("Login attempt - Username: %s", username)
         logger.debug("Available users: %s", list(users.keys()))
-        
+        logger.debug("Session captcha: %s", session.get('captcha'))
+        logger.debug("User input captcha: %s", captcha)
+
+        # 验证验证码
+        if not validate_captcha(captcha, session.get('captcha')):
+            # 验证失败时，生成新的验证码
+            captcha_text = generate_captcha_text()
+            session['captcha'] = captcha_text
+            captcha_image = generate_captcha_image(captcha_text)
+            logger.debug("Captcha validation failed for user: %s", username)
+            logger.debug("Generated new captcha: %s", captcha_text)
+            return render_template_string(login_template, captcha_image=captcha_image, error='验证码错误，请重新输入')
+
         # 验证用户凭据
         if username in users and check_password_hash(users[username], password):
             logger.debug("Login successful for user: %s", username)
             session['username'] = username
+            # 登录成功后清除验证码
+            session.pop('captcha', None)
             return redirect(url_for('upload_file'))
         else:
+            # 密码错误时，也生成新的验证码
+            captcha_text = generate_captcha_text()
+            session['captcha'] = captcha_text
+            captcha_image = generate_captcha_image(captcha_text)
             logger.debug("Login failed for user: %s", username)
-            return render_template_string(login_template, error='无效的用户名或密码')
-    
-    return render_template_string(login_template)
+            return render_template_string(login_template, captcha_image=captcha_image, error='无效的用户名或密码')
+
+    # GET请求 - 生成初始验证码
+    captcha_text = generate_captcha_text()
+    session['captcha'] = captcha_text
+    captcha_image = generate_captcha_image(captcha_text)
+    return render_template_string(login_template, captcha_image=captcha_image)
 
 # 登出路由
 @app.route('/logout')
