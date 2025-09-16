@@ -24,4 +24,5 @@ ENV FLASK_DEBUG=False
 # ENV ADMIN_USERNAME=your_admin_username
 # ENV ADMIN_PASSWORD=your_secure_password
 
-CMD ["python", "app.py"]
+# 使用Gunicorn作为生产服务器，优化适配单核CPU
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "--max-requests", "1000", "--max-requests-jitter", "50", "app:app"]

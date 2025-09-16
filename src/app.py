@@ -14,7 +14,8 @@ import base64
 from PIL import Image, ImageDraw, ImageFont
 
 # 配置日志
-logging.basicConfig(level=logging.DEBUG)
+log_level = os.environ.get('LOG_LEVEL', 'INFO').upper()
+logging.basicConfig(level=getattr(logging, log_level, logging.INFO))
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -71,68 +72,36 @@ def generate_captcha_image(text):
     draw = ImageDraw.Draw(image)
 
     try:
-        # 尝试使用DejaVu字体
-        font_size = 32
+        # 尝试使用DejaVu字体，减小字体大小
+        font_size = 24
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
     except:
         try:
             # 尝试使用Liberation字体
-            font_size = 32
             font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", font_size)
         except:
-            try:
-                # 尝试使用其他字体路径
-                font_size = 32
-                font = ImageFont.truetype("/usr/share/fonts/dejavu/DejaVuSans.ttf", font_size)
-            except:
-                # 使用默认字体并手动调整大小
-                font = ImageFont.load_default()
-                font_size = 24
+            # 使用默认字体
+            font = ImageFont.load_default()
 
     # 计算字符位置，使4个数字均匀分布并最大化利用空间
     char_width = width // len(text)
 
-    # 绘制文本
+    # 简化的文本绘制 - 直接绘制，不旋转
     for i, char in enumerate(text):
-        # 计算字符位置，居中显示
         x = i * char_width + (char_width // 2) - (font_size // 3)
-        y = random.randint(2, 8)  # 最小化垂直偏移，让字体更填满
-        angle = random.randint(-3, 3)  # 最小化旋转，保持可读性
+        y = 10  # 固定垂直位置，减少随机计算
+        draw.text((x, y), char, font=font, fill=(0, 0, 0))
 
-        # 创建字符图像，使用最大可能的尺寸
-        char_img_size = int(font_size * 1.2)
-        char_image = Image.new('RGBA', (char_img_size, char_img_size), (255, 255, 255, 0))
-        char_draw = ImageDraw.Draw(char_image)
-
-        # 尝试更大的字体
-        try:
-            big_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
-        except:
-            try:
-                big_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", font_size)
-            except:
-                big_font = font
-
-        char_draw.text((0, 0), char, font=big_font, fill=(0, 0, 0))
-
-        # 旋转字符
-        char_image = char_image.rotate(angle, expand=False)
-
-        # 将字符粘贴到主图片上，调整位置确保填满
-        final_x = max(0, min(x, width - char_img_size))
-        final_y = max(0, min(y, height - char_img_size))
-        image.paste(char_image, (int(final_x), int(final_y)), char_image)
-
-    # 添加干扰线
-    for _ in range(5):
+    # 减少干扰线数量
+    for _ in range(2):
         x1 = random.randint(0, width)
         y1 = random.randint(0, height)
         x2 = random.randint(0, width)
         y2 = random.randint(0, height)
         draw.line([(x1, y1), (x2, y2)], fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), width=1)
 
-    # 添加干扰点
-    for _ in range(30):
+    # 减少干扰点数量
+    for _ in range(10):
         x = random.randint(0, width)
         y = random.randint(0, height)
         draw.point((x, y), fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
