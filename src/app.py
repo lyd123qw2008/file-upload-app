@@ -449,7 +449,7 @@ upload_template = '''
             <!-- 拖拽上传区域 -->
             <div id="dropZone" class="drop-zone">
                 <div class="drop-zone-text">
-                    <span class="drop-zone-highlight">拖拽文件到此处</span> 或 <span class="drop-zone-highlight">点击选择文件</span>
+                    <span class="drop-zone-highlight">拖拽文件到此处</span> 或 <span class="drop-zone-highlight">点击选择多个文件</span>
                 </div>
                 <div class="drop-zone-or">─────────── 或 ───────────</div>
                 <div class="drop-zone-text">使用下方的传统文件选择方式</div>
@@ -457,7 +457,7 @@ upload_template = '''
             
             <p>
                 <label>选择文件:</label><br>
-                <input type="file" name="file" id="fileInput" required>
+                <input type="file" name="file" id="fileInput" multiple required>
             </p>
             <p>
                 <input type="submit" value="上传" id="uploadButton">
@@ -528,155 +528,136 @@ upload_template = '''
             return 0;
         }
         
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const uploadButton = document.getElementById('uploadButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const storageInfo = document.getElementById('storageInfo');
+        const dropZone = document.getElementById('dropZone');
+
         // 上传进度处理
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        uploadForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                alert('请选择一个文件');
+            startUpload(Array.from(fileInput.files));
+        });
+
+        function startUpload(files) {
+            if (!files || files.length === 0) {
+                alert('请选择至少一个文件');
                 return;
             }
-            
-            // 检查存储限制
-            const storageInfo = document.getElementById('storageInfo');
-            const maxStorage = storageInfo.getAttribute('data-max-storage');
-            const usedStorage = storageInfo.getAttribute('data-used-storage');
-            
-            // 解析存储大小
-            const maxStorageBytes = parseFileSize(maxStorage);
-            const usedStorageBytes = parseFileSize(usedStorage);
-            const fileSizeBytes = file.size;
-            
-            // 检查是否会超出存储限制
-            if (usedStorageBytes + fileSizeBytes > maxStorageBytes) {
-                alert('上传此文件将超出存储限制，请删除一些文件后再试。');
+
+            // 计算本次上传的总大小
+            const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+
+            const maxStorageBytes = parseFileSize(storageInfo.getAttribute('data-max-storage'));
+            const usedStorageBytes = parseFileSize(storageInfo.getAttribute('data-used-storage'));
+
+            if (usedStorageBytes + totalSize > maxStorageBytes) {
+                alert('本次上传的文件总大小将超出存储限制，请删除一些文件或减少上传数量。');
                 return;
             }
-            
-            // 显示进度条
-            const progressContainer = document.getElementById('progressContainer');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            const uploadStatus = document.getElementById('uploadStatus');
-            const uploadButton = document.getElementById('uploadButton');
-            const cancelButton = document.getElementById('cancelButton');
-            
+
             progressContainer.style.display = 'block';
             cancelButton.style.display = 'block';
             progressFill.style.width = '0%';
             progressText.textContent = '0%';
-            uploadStatus.textContent = '准备上传...';
+            uploadStatus.textContent = files.length > 1 ? `准备上传 ${files.length} 个文件...` : '准备上传...';
             uploadButton.disabled = true;
             uploadButton.value = '上传中...';
-            
-            // 创建FormData对象
+
             const formData = new FormData();
-            formData.append('file', file);
-            
-            // 创建XMLHttpRequest对象
+            files.forEach(file => formData.append('file', file));
+
             const xhr = new XMLHttpRequest();
-            
-            // 监听上传进度
+
             xhr.upload.addEventListener('progress', function(e) {
                 if (e.lengthComputable) {
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
                     progressFill.style.width = percentComplete + '%';
                     progressText.textContent = percentComplete + '%';
-                    uploadStatus.textContent = `已上传 ${formatBytes(e.loaded)} / ${formatBytes(e.total)}`;
+                    uploadStatus.textContent = `已上传 ${formatBytes(e.loaded)} / ${formatBytes(e.total)}${files.length > 1 ? `（共 ${files.length} 个文件）` : ''}`;
                 }
             });
-            
-            // 监听上传完成
+
             xhr.addEventListener('load', function() {
-                if (xhr.status === 200) {
-                    // 检查响应是否为JSON格式的错误信息
-                    if (xhr.responseText.startsWith('{') && xhr.responseText.endsWith('}')) {
-                        try {
-                            const response = JSON.parse(xhr.responseText);
-                            if (response.error) {
-                                // 如果是错误响应，显示错误消息
-                                uploadStatus.textContent = '上传失败: ' + response.error;
-                                uploadButton.disabled = false;
-                                uploadButton.value = '上传';
-                                cancelButton.style.display = 'none';
-                                return;
-                            }
-                        } catch (e) {
-                            // JSON解析失败，继续下面的处理
-                        }
+                cancelButton.style.display = 'none';
+
+                if (xhr.status !== 200) {
+                    uploadStatus.textContent = '上传失败，请重试';
+                    resetUploadState();
+                    return;
+                }
+
+                let response;
+                try {
+                    response = JSON.parse(xhr.responseText);
+                } catch (error) {
+                    uploadStatus.textContent = '服务器返回了无法解析的响应';
+                    resetUploadState();
+                    return;
+                }
+
+                const { success, uploaded, errors, storage } = response;
+
+                if (Array.isArray(uploaded) && storage && storage.used_storage) {
+                    storageInfo.setAttribute('data-used-storage', storage.used_storage);
+                }
+
+                if (success) {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = '100%';
+                    const uploadedNames = uploaded.map(item => item.name).join('，');
+                    let statusMessage = uploaded.length > 1 ? `成功上传 ${uploaded.length} 个文件：${uploadedNames}` : `成功上传 ${uploaded[0].name}`;
+                    const hasErrors = errors && errors.length > 0;
+                    if (hasErrors) {
+                        statusMessage += `。以下文件上传失败：${errors.join('；')}`;
                     }
-                    
-                    // 检查是否为成功消息
-                    if (xhr.responseText === '文件上传成功!') {
-                        progressFill.style.width = '100%';
-                        progressText.textContent = '100%';
-                        uploadStatus.textContent = '上传完成！';
-                        cancelButton.style.display = 'none';
-                        // 延迟刷新页面以显示新文件
-                        setTimeout(function() {
-                            window.location.reload();
-                        }, 1000);
-                        return;
-                    }
-                    
-                    // 检查是否为HTML格式的错误页面
-                    if (xhr.responseText.includes('class="error"') || (xhr.responseText.includes('<!doctype') && xhr.responseText.includes('error'))) {
-                        uploadStatus.textContent = '上传失败，请查看页面错误信息';
-                        uploadButton.disabled = false;
-                        uploadButton.value = '上传';
-                        cancelButton.style.display = 'none';
-                    } else {
-                        // 默认成功处理
-                        progressFill.style.width = '100%';
-                        progressText.textContent = '100%';
-                        uploadStatus.textContent = '上传完成！';
-                        cancelButton.style.display = 'none';
-                        // 延迟刷新页面以显示新文件
-                        setTimeout(function() {
-                            window.location.reload();
-                        }, 1000);
-                    }
+                    uploadStatus.textContent = statusMessage;
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, hasErrors ? 2500 : 1200);
+                    return;
+                }
+
+                if (errors && errors.length > 0) {
+                    uploadStatus.textContent = '上传失败：' + errors.join('；');
                 } else {
                     uploadStatus.textContent = '上传失败，请重试';
-                    uploadButton.disabled = false;
-                    uploadButton.value = '上传';
-                    cancelButton.style.display = 'none';
                 }
+
+                resetUploadState();
             });
-            
-            // 监听上传错误
+
             xhr.addEventListener('error', function() {
                 uploadStatus.textContent = '上传出错，请重试';
-                uploadButton.disabled = false;
-                uploadButton.value = '上传';
-                cancelButton.style.display = 'none';
+                resetUploadState();
             });
-            
-            // 取消上传功能
+
             cancelButton.onclick = function() {
                 xhr.abort();
                 uploadStatus.textContent = '上传已取消';
-                uploadButton.disabled = false;
-                uploadButton.value = '上传';
-                cancelButton.style.display = 'none';
-                // 重置文件输入框，允许重新选择文件
-                fileInput.value = '';
-                // 重置进度条
-                progressFill.style.width = '0%';
-                progressText.textContent = '0%';
+                resetUploadState();
                 setTimeout(function() {
                     progressContainer.style.display = 'none';
                 }, 2000);
             };
-            
-            // 发送请求
+
             xhr.open('POST', '/upload');
             xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
             xhr.send(formData);
-        });
+        }
+
+        function resetUploadState() {
+            uploadButton.disabled = false;
+            uploadButton.value = '上传';
+            cancelButton.style.display = 'none';
+            fileInput.value = '';
+        }
         
         // 格式化字节数
         function formatBytes(bytes) {
@@ -752,10 +733,6 @@ upload_template = '''
         }
         
         // 拖拽上传功能
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const uploadForm = document.getElementById('uploadForm');
-        
         // 阻止浏览器默认的拖拽行为
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, preventDefaults, false);
@@ -782,8 +759,7 @@ upload_template = '''
         // 文件输入框变化时触发上传
         fileInput.addEventListener('change', function() {
             if (this.files.length > 0) {
-                // 触发表单提交
-                uploadForm.dispatchEvent(new Event('submit'));
+                startUpload(Array.from(this.files));
             }
         });
         
@@ -805,17 +781,13 @@ upload_template = '''
         
         // 处理拖拽放下的文件
         function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            
+            const files = Array.from(e.dataTransfer.files || []);
+
             if (files.length > 0) {
-                // 只处理第一个文件，保持与传统上传方式一致
-                const file = files[0];
                 const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
+                files.forEach(file => dataTransfer.items.add(file));
                 fileInput.files = dataTransfer.files;
-                // 触发表单提交
-                uploadForm.dispatchEvent(new Event('submit'));
+                startUpload(files);
             }
         }
     </script>
@@ -1639,92 +1611,101 @@ def upload_file():
         # 检查存储空间是否已满
         if storage_full:
             files = get_file_list()
-            return render_template_string(upload_template, 
-                                        username=session['username'], 
-                                        files=files,
-                                        **storage_info,
-                                        storage_full=True,
-                                        storage_warning=storage_warning)
-        
-        # 检查是否有文件上传
-        if 'file' not in request.files:
+            return render_template_string(
+                upload_template,
+                username=session['username'],
+                files=files,
+                **storage_info,
+                storage_full=True,
+                storage_warning=storage_warning
+            )
+
+        # 收集所有上传的文件实例
+        uploaded_files = [f for f in request.files.getlist('file') if f and f.filename]
+        if not uploaded_files:
             files = get_file_list()
-            return render_template_string(upload_template, 
-                                        username=session['username'], 
-                                        files=files,
-                                        **storage_info,
-                                        storage_full=storage_full,
-                                        storage_warning=storage_warning)
-        
-        file = request.files['file']
-        if file and file.filename != '':
+            return render_template_string(
+                upload_template,
+                username=session['username'],
+                files=files,
+                **storage_info,
+                storage_full=storage_full,
+                storage_warning=storage_warning,
+                error='没有选择文件'
+            )
+
+        ajax_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        current_usage = storage_info['used_bytes']
+        max_storage = storage_info['max_bytes']
+        successful_uploads = []
+        errors = []
+
+        for file in uploaded_files:
             filename = file.filename
-            # 检查文件名是否安全
+
             if not is_safe_filename(filename):
-                # 对于AJAX请求，返回JSON错误信息
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return '{"error": "文件名包含非法字符或路径遍历字符（如../），请使用合法的文件名。文件名不应包含以下字符：/\\<>:\\"|?*以及控制字符。"}'
-                # 对于普通表单提交，返回带错误的页面
-                error_message = '文件名包含非法字符或路径遍历字符（如../），请使用合法的文件名。文件名不应包含以下字符：/\\<>:"|?*以及控制字符。'
-                files = get_file_list()
-                return render_template_string(upload_template, 
-                                            username=session['username'], 
-                                            files=files,
-                                            **storage_info,
-                                            storage_full=storage_full,
-                                            storage_warning=storage_warning,
-                                            error=error_message)
-            
-            # 检查文件扩展名是否允许
+                errors.append(
+                    f'{filename}: 文件名包含非法字符或路径遍历字符（如../），请使用合法的文件名。文件名不应包含以下字符：/\\<>:"|?*以及控制字符。'
+                )
+                continue
+
             if not allowed_file(filename):
                 file_type_desc = get_file_type_description(filename)
-                # 对于AJAX请求，返回JSON错误信息
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return f'{{"error": "出于安全考虑，系统不允许上传{file_type_desc}。请上传以下类型的文件：文本文件、图片、文档、压缩包、音频或视频文件。"}}'
-                # 对于普通表单提交，返回带错误的页面
-                error_message = f'出于安全考虑，系统不允许上传{file_type_desc}。请上传以下类型的文件：文本文件、图片、文档、压缩包、音频或视频文件。'
-                files = get_file_list()
-                return render_template_string(upload_template, 
-                                            username=session['username'], 
-                                            files=files,
-                                            **storage_info,
-                                            storage_full=storage_full,
-                                            storage_warning=storage_warning,
-                                            error=error_message)
-            
+                errors.append(
+                    f'{filename}: 出于安全考虑，系统不允许上传{file_type_desc}。请上传以下类型的文件：文本文件、图片、文档、压缩包、音频或视频文件。'
+                )
+                continue
+
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            
-            # 检查上传此文件后是否会超出存储限制
+
             file.seek(0, os.SEEK_END)
             file_size = file.tell()
-            file.seek(0)  # 重置文件指针
-            
-            new_total_size = storage_info['used_bytes'] + file_size
-            if new_total_size > storage_info['max_bytes']:
-                files = get_file_list()
-                return render_template_string(upload_template, 
-                                            username=session['username'], 
-                                            files=files,
-                                            **storage_info,
-                                            storage_full=False,
-                                            storage_warning=storage_warning,
-                                            error='上传此文件将超出存储限制，请删除一些文件后再试。')
-            
+            file.seek(0)
+
+            if current_usage + file_size > max_storage:
+                errors.append(
+                    f'{filename}: 上传此文件将超出存储限制，请删除一些文件后再试。'
+                )
+                continue
+
             file.save(filepath)
-            # 对于AJAX请求，返回成功消息
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return '文件上传成功!'
-            # 对于普通表单提交，重定向
+            current_usage += file_size
+            successful_uploads.append({
+                'name': filename,
+                'size': format_file_size(file_size)
+            })
+
+        # AJAX 请求返回 JSON 响应
+        if ajax_request:
+            updated_storage = format_storage_info()
+            response_data = {
+                'success': bool(successful_uploads),
+                'uploaded': successful_uploads,
+                'errors': errors,
+                'storage': {
+                    'used_storage': updated_storage['used_storage'],
+                    'usage_percentage': updated_storage['usage_percentage']
+                }
+            }
+            return app.response_class(
+                response=json.dumps(response_data, ensure_ascii=False),
+                mimetype='application/json'
+            )
+
+        # 非 AJAX 请求：若有成功上传的文件则重定向，否则返回错误信息
+        if successful_uploads:
             return redirect(url_for('upload_file'))
-        else:
-            files = get_file_list()
-            return render_template_string(upload_template, 
-                                        username=session['username'], 
-                                        files=files,
-                                        **storage_info,
-                                        storage_full=storage_full,
-                                        storage_warning=storage_warning,
-                                        error='没有选择文件')
+
+        files = get_file_list()
+        return render_template_string(
+            upload_template,
+            username=session['username'],
+            files=files,
+            **storage_info,
+            storage_full=storage_full,
+            storage_warning=storage_warning,
+            error='；'.join(errors) if errors else '上传失败，请重试。'
+        )
     
     # GET请求 - 显示文件列表和上传表单
     files = get_file_list()
