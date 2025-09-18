@@ -257,46 +257,151 @@ login_template = '''
     <meta charset="utf-8">
     <style>
         * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
-        h1 { color: #333; }
-        form { background: #f5f5f5; padding: 20px; border-radius: 5px; }
-        input[type="text"], input[type="password"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 3px; }
-        input[type="submit"] { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
-        input[type="submit"]:hover { background: #005a87; }
-        .error { color: red; }
-        .captcha-container { display: flex; align-items: center; gap: 10px; }
-        .captcha-image { border: 1px solid #ddd; border-radius: 3px; cursor: pointer; }
-        .captcha-input { flex: 1; }
-        .refresh-btn { background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; }
-        .refresh-btn:hover { background: #218838; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #eff6ff, #f8fafc);
+            color: #0f172a;
+        }
+        .auth-shell {
+            width: 100%;
+            max-width: 420px;
+            padding: 32px 24px 48px;
+        }
+        .auth-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .subtitle {
+            margin: 0;
+            font-size: 15px;
+            color: #475569;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        label { font-weight: 600; color: #1e293b; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(248, 250, 252, 0.9);
+            font-size: 15px;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .captcha-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .captcha-input {
+            flex: 1;
+            min-width: 180px;
+        }
+        .captcha-image {
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            height: 48px;
+            cursor: pointer;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 20px;
+            border-radius: 999px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+        }
+        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        .alert {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .helper-footer {
+            font-size: 13px;
+            color: #64748b;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <h1>文件上传系统 - 登录</h1>
-    {% if error %}
-    <p class="error">{{ error }}</p>
-    {% endif %}
-    <form method="post">
-        <p>
-            <label>用户名:</label>
-            <input type="text" name="username" required style="margin-right: 10px;">
-        </p>
-        <p>
-            <label>密码:</label>
-            <input type="password" name="password" required style="margin-right: 10px;">
-        </p>
-        <p>
-            <label>验证码:</label>
-            <div class="captcha-container">
-                <input type="text" name="captcha" class="captcha-input" placeholder="请输入验证码" required>
-                <img src="{{ captcha_image }}" alt="验证码" class="captcha-image" onclick="refreshCaptcha()" title="点击刷新验证码">
-                <button type="button" class="refresh-btn" onclick="refreshCaptcha()">刷新</button>
+    <div class="auth-shell">
+        <div class="auth-card">
+            <div>
+                <h1>文件上传系统</h1>
+                <p class="subtitle">请输入账号信息完成身份验证。</p>
             </div>
-        </p>
-        <p>
-            <input type="submit" value="登录">
-        </p>
-    </form>
+            {% if error %}
+            <div class="alert">{{ error }}</div>
+            {% endif %}
+            <form method="post">
+                <div class="input-group">
+                    <label for="username">用户名</label>
+                    <input type="text" name="username" id="username" placeholder="输入用户名" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">密码</label>
+                    <input type="password" name="password" id="password" placeholder="输入密码" required>
+                </div>
+                <div class="input-group">
+                    <label for="captcha">验证码</label>
+                    <div class="captcha-row">
+                        <input type="text" name="captcha" id="captcha" class="captcha-input" placeholder="请输入验证码" required>
+                        <img src="{{ captcha_image }}" alt="验证码" class="captcha-image" onclick="refreshCaptcha()" title="点击刷新验证码">
+                        <button type="button" class="btn btn-secondary" onclick="refreshCaptcha()">刷新</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">登录系统</button>
+            </form>
+            <p class="helper-footer">多次失败会触发验证码刷新，请妥善保管管理员凭证。</p>
+        </div>
+    </div>
 
     <script>
         function refreshCaptcha() {
@@ -343,177 +448,376 @@ upload_template = '''
     <meta charset="utf-8">
     <style>
         * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
-        h1 { color: #333; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .logout { background: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
-        .logout:hover { background: #c82333; }
-        .upload-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-        input[type="file"] { margin: 10px 0; width: 100%; }
-        input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
-        input[type="submit"]:hover { background: #218838; }
-        input[type="submit"]:disabled { background: #6c757d; cursor: not-allowed; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        tr:hover { background-color: #f5f5f5; }
-        .actions a { margin-right: 10px; text-decoration: none; padding: 5px 10px; border-radius: 3px; }
-        .download { background: #007cba; color: white; }
-        .preview { background: #28a745; color: white; }
-        .delete { background: #dc3545; color: white; }
-        .actions a:hover { opacity: 0.8; }
-        .file-info { color: #666; font-size: 0.9em; }
-        .storage-info { background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
-        .storage-warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
-        .error { color: red; }
-        
-        /* 进度条样式 */
-        .progress-container { display: none; margin: 20px 0; }
-        .progress-bar { 
-            width: 100%; 
-            background-color: #f0f0f0; 
-            border-radius: 5px; 
-            overflow: hidden; 
-            height: 20px; 
-            margin: 10px 0; 
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #eff6ff, #f8fafc);
+            color: #0f172a;
         }
-        .progress-fill { 
-            height: 100%; 
-            background-color: #007cba; 
-            width: 0%; 
-            transition: width 0.3s ease; 
+        a { text-decoration: none; }
+        .page-wrapper {
+            max-width: 1080px;
+            margin: 48px auto;
+            padding: 0 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
         }
-        .progress-text { 
-            text-align: center; 
-            font-size: 14px; 
-            color: #333; 
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.16);
         }
-        .upload-status { margin: 10px 0; font-size: 14px; }
-        
-        /* 拖拽上传区域样式 */
-        .drop-zone {
-            border: 2px dashed #007cba;
-            border-radius: 5px;
-            padding: 30px;
-            text-align: center;
-            margin: 20px 0;
-            background-color: #e3f2fd;
-            transition: all 0.3s ease;
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: 15px;
+        }
+        .nav-actions a {
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+        .nav-actions a:hover { color: #1e3a8a; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
+        .btn:disabled { cursor: not-allowed; opacity: 0.6; box-shadow: none; }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+        }
+        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        .btn-danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25);
+        }
+        .btn-danger:hover { background: linear-gradient(90deg, #dc2626, #b91c1c); transform: translateY(-1px); }
+        .storage-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: linear-gradient(135deg, #eef2ff, #ffffff);
+        }
+        .storage-summary { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+        .storage-text { font-size: 16px; color: #1e293b; }
+        .storage-usage { font-weight: 600; color: #1d4ed8; }
+        .storage-meter {
+            width: 100%;
+            height: 12px;
+            background: rgba(148, 163, 184, 0.25);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .storage-meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #1d4ed8);
+            transition: width 0.4s ease;
+        }
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+        .alert::before {
+            content: '⚠';
+            font-size: 18px;
+        }
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .upload-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .upload-panel h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .upload-form-inner { display: flex; flex-direction: column; gap: 16px; }
+        .input-label { font-weight: 600; color: #1e293b; }
+        input[type="file"] {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(248, 250, 252, 0.9);
             cursor: pointer;
         }
+        input[type="file"]:hover { border-color: #2563eb; }
+        .drop-zone {
+            border: 2px dashed rgba(37, 99, 235, 0.55);
+            border-radius: 16px;
+            padding: 36px;
+            text-align: center;
+            background: rgba(59, 130, 246, 0.08);
+            transition: all 0.25s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .drop-zone::before {
+            content: '📁';
+            font-size: 32px;
+        }
         .drop-zone.dragover {
-            background-color: #bbdefb;
-            border-color: #005a87;
+            background: rgba(59, 130, 246, 0.16);
+            border-color: #2563eb;
+            transform: translateY(-2px);
         }
-        .drop-zone-text {
-            color: #007cba;
-            font-size: 16px;
-            margin: 10px 0;
+        .drop-zone-text { color: #1d4ed8; font-size: 16px; font-weight: 600; }
+        .drop-zone-highlight { font-weight: 700; }
+        .drop-zone-or { color: #475569; font-size: 14px; }
+        .progress-container {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
         }
-        .drop-zone-highlight {
-            font-weight: bold;
+        .progress-bar {
+            width: 100%;
+            background-color: rgba(203, 213, 225, 0.5);
+            border-radius: 999px;
+            overflow: hidden;
+            height: 16px;
         }
-        .drop-zone-or {
-            color: #666;
-            margin: 10px 0;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #34d399, #059669);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-text { text-align: center; font-size: 14px; color: #1f2937; font-weight: 600; }
+        .upload-status { font-size: 14px; color: #475569; }
+        .table-card { padding: 0; }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .table-header h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .table-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .table-wrapper { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 14px;
+        }
+        thead tr { background: rgba(248, 250, 252, 0.9); }
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+        }
+        th:first-child, td:first-child { padding-left: 24px; }
+        th:last-child, td:last-child { padding-right: 24px; }
+        tbody tr:hover { background: rgba(59, 130, 246, 0.06); }
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .actions a {
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .actions a:hover { transform: translateY(-1px); }
+        .preview { background: linear-gradient(90deg, #22c55e, #16a34a); box-shadow: 0 10px 20px rgba(34, 197, 94, 0.25); }
+        .download { background: linear-gradient(90deg, #0ea5e9, #0284c7); box-shadow: 0 10px 20px rgba(14, 165, 233, 0.25); }
+        .delete { background: linear-gradient(90deg, #ef4444, #dc2626); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3); }
+        .error { color: #b91c1c; font-weight: 600; }
+        .helper-text { font-size: 13px; color: #64748b; }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.1);
+            color: #1d4ed8;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .nav-actions { flex-wrap: wrap; }
+            .card { padding: 20px; }
+            th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) { white-space: nowrap; }
+            .table-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .table-actions { width: 100%; }
+            .actions { width: 100%; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>文件管理</h1>
-        <p>欢迎, {{ username }}! <a href="/clipboard">网络剪贴板</a> | <a href="/personal_clipboard">个人剪贴板</a> | <a href="/logout" class="logout">退出</a></p>
-    </div>
-    
-    <div class="storage-info">
-        <strong>存储使用情况:</strong> {{ used_storage }} / {{ max_storage }} ({{ usage_percentage }}%)
-    </div>
-    
-    {% if storage_warning %}
-    <div class="storage-warning">
-        警告: 存储空间已使用 {{ usage_percentage }}%，请考虑删除一些文件以释放空间。
-    </div>
-    {% endif %}
-    
-    {% if storage_full %}
-    <div class="storage-warning">
-        错误: 存储空间已满，无法上传更多文件。请删除一些文件以释放空间。
-    </div>
-    {% else %}
-    <div class="upload-form">
-        <h2>上传文件</h2>
-        {% if error %}
-        <p class="error">{{ error }}</p>
+    <div class="page-wrapper">
+        <header class="header card">
+            <div>
+                <h1>文件管理</h1>
+                <p class="helper-text">拖拽、筛选与批量操作，让日常协作更顺畅。</p>
+            </div>
+            <div class="nav-actions">
+                <span class="tag">欢迎 {{ username }}</span>
+                <a href="/clipboard">网络剪贴板</a>
+                <a href="/personal_clipboard">个人剪贴板</a>
+                <a href="/logout" class="btn btn-danger">退出</a>
+            </div>
+        </header>
+
+        <section class="card storage-card">
+            <div class="storage-summary">
+                <div class="storage-text">当前存储使用情况</div>
+                <div class="storage-usage">{{ used_storage }} / {{ max_storage }} ({{ usage_percentage }}%)</div>
+            </div>
+            <div class="storage-meter">
+                <div class="storage-meter-fill" style="width: {{ usage_percentage }}%;"></div>
+            </div>
+        </section>
+
+        {% if storage_warning %}
+        <div class="alert alert-warning">
+            警告: 存储空间已使用 {{ usage_percentage }}%，请考虑删除一些文件以释放空间。
+        </div>
         {% endif %}
-        <form id="uploadForm" method="post" enctype="multipart/form-data">
-            <!-- 拖拽上传区域 -->
-            <div id="dropZone" class="drop-zone">
-                <div class="drop-zone-text">
-                    <span class="drop-zone-highlight">拖拽文件到此处</span> 或 <span class="drop-zone-highlight">点击选择多个文件</span>
+
+        {% if storage_full %}
+        <div class="alert alert-error">
+            错误: 存储空间已满，无法上传更多文件。请删除一些文件以释放空间。
+        </div>
+        {% else %}
+        <section class="card upload-panel">
+            <div>
+                <h2>上传文件</h2>
+                <p class="helper-text">支持多文件批量上传，系统会自动校验容量与格式。</p>
+            </div>
+            {% if error %}
+            <p class="error">{{ error }}</p>
+            {% endif %}
+            <form id="uploadForm" method="post" enctype="multipart/form-data" class="upload-form-inner">
+                <!-- 拖拽上传区域 -->
+                <div id="dropZone" class="drop-zone">
+                    <div class="drop-zone-text"><span class="drop-zone-highlight">拖拽文件到此处</span></div>
+                    <div class="drop-zone-or">或</div>
+                    <div class="drop-zone-text">点击选择多个文件</div>
                 </div>
-                <div class="drop-zone-or">─────────── 或 ───────────</div>
-                <div class="drop-zone-text">使用下方的传统文件选择方式</div>
+
+                <div>
+                    <label for="fileInput" class="input-label">选择文件</label>
+                    <input type="file" name="file" id="fileInput" multiple required>
+                    <p class="helper-text">建议按批次上传，方便快速撤销或重试。</p>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary" id="uploadButton">开始上传</button>
+                </div>
+            </form>
+
+            <!-- 进度条 -->
+            <div id="progressContainer" class="progress-container">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div id="progressText" class="progress-text">0%</div>
+                <div id="uploadStatus" class="upload-status"></div>
+                <button id="cancelButton" type="button" class="btn btn-danger" style="display:none;">取消上传</button>
             </div>
-            
-            <p>
-                <label>选择文件:</label><br>
-                <input type="file" name="file" id="fileInput" multiple required>
-            </p>
-            <p>
-                <input type="submit" value="上传" id="uploadButton">
-            </p>
-        </form>
-        
-        <!-- 进度条 -->
-        <div id="progressContainer" class="progress-container">
-            <div class="progress-bar">
-                <div id="progressFill" class="progress-fill"></div>
+            <!-- 存储限制信息（用于前端检查） -->
+            <div id="storageInfo" style="display:none;" 
+                 data-max-storage="{{ max_storage }}" 
+                 data-used-storage="{{ used_storage }}" 
+                 data-usage-percentage="{{ usage_percentage }}">
             </div>
-            <div id="progressText" class="progress-text">0%</div>
-            <div id="uploadStatus" class="upload-status"></div>
-            <button id="cancelButton" style="display:none;background:#dc3545;color:white;padding:5px 10px;border:none;border-radius:3px;cursor:pointer;margin-top:10px;">取消上传</button>
-        </div>
-        <!-- 存储限制信息（用于前端检查） -->
-        <div id="storageInfo" style="display:none;" 
-             data-max-storage="{{ max_storage }}" 
-             data-used-storage="{{ used_storage }}" 
-             data-usage-percentage="{{ usage_percentage }}">
-        </div>
+        </section>
+        {% endif %}
+
+        <section class="card table-card">
+            <div class="table-header">
+                <h2>文件列表</h2>
+                <div class="table-actions">
+                    <button id="selectAllBtn" type="button" class="btn btn-secondary">全选</button>
+                    <button id="deselectAllBtn" type="button" class="btn btn-secondary">取消全选</button>
+                    <button id="deleteSelectedBtn" type="button" class="btn btn-danger" onclick="deleteSelectedFiles()">批量删除</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox"></th>
+                            <th>文件名</th>
+                            <th>大小</th>
+                            <th>修改时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fileTableBody">
+                        {% for file in files %}
+                        <tr>
+                            <td><input type="checkbox" class="fileCheckbox" data-filename="{{ file.name }}"></td>
+                            <td>{{ file.name }}</td>
+                            <td>{{ file.size }}</td>
+                            <td>{{ file.modified }}</td>
+                            <td class="actions">
+                                <a href="/preview/{{ file.name }}" class="preview">预览</a>
+                                <a href="/download/{{ file.name }}" class="download">下载</a>
+                                <a href="/delete/{{ file.name }}" class="delete" onclick="return confirm('确定要删除 {{ file.name }} 吗？')">删除</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
-    {% endif %}
-    
-    <h2>文件列表</h2>
-    <div style="margin-bottom: 10px;">
-        <button id="selectAllBtn" style="background: #007cba; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">全选</button>
-        <button id="deselectAllBtn" style="background: #6c757d; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">取消全选</button>
-        <button id="deleteSelectedBtn" style="background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer;" onclick="deleteSelectedFiles()">批量删除</button>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox"></th>
-                <th>文件名</th>
-                <th>大小</th>
-                <th>修改时间</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody id="fileTableBody">
-            {% for file in files %}
-            <tr>
-                <td><input type="checkbox" class="fileCheckbox" data-filename="{{ file.name }}"></td>
-                <td>{{ file.name }}</td>
-                <td>{{ file.size }}</td>
-                <td>{{ file.modified }}</td>
-                <td class="actions">
-                    <a href="/preview/{{ file.name }}" class="preview">预览</a>
-                    <a href="/download/{{ file.name }}" class="download">下载</a>
-                    <a href="/delete/{{ file.name }}" class="delete" onclick="return confirm('确定要删除 {{ file.name }} 吗？')">删除</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
     
     <script>
         // 文件大小转换函数
@@ -804,103 +1108,299 @@ clipboard_template = '''
     <meta charset="utf-8">
     <style>
         * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
-        h1 { color: #333; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .logout { background: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
-        .logout:hover { background: #c82333; }
-        .back { background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
-        .back:hover { background: #005a87; }
-        .clipboard-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-        textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 3px; }
-        input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
-        input[type="submit"]:hover { background: #218838; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        tr:hover { background-color: #f5f5f5; }
-        .actions a { margin-right: 10px; text-decoration: none; padding: 5px 10px; border-radius: 3px; }
-        .copy { background: #28a745; color: white; }
-        .delete { background: #dc3545; color: white; }
-        .actions a:hover { opacity: 0.8; }
-        .public { color: #28a745; font-weight: bold; }
-        .private { color: #6c757d; }
-        .content-preview { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #eff6ff, #f8fafc);
+            color: #0f172a;
+        }
+        a { text-decoration: none; }
+        .page-wrapper {
+            max-width: 1080px;
+            margin: 48px auto;
+            padding: 0 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .header .subtitle {
+            margin-top: 6px;
+            font-size: 15px;
+            color: #475569;
+        }
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .nav-actions a { color: #1d4ed8; font-weight: 600; }
+        .nav-actions a:hover { color: #1e3a8a; }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.1);
+            color: #1d4ed8;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+        }
+        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        .btn-success {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(34, 197, 94, 0.25);
+        }
+        .btn-success:hover { background: linear-gradient(90deg, #16a34a, #15803d); transform: translateY(-1px); }
+        .btn-danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25);
+        }
+        .btn-danger:hover { background: linear-gradient(90deg, #dc2626, #b91c1c); transform: translateY(-1px); }
+        .form-card {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .form-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-header h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .helper-text { font-size: 13px; color: #64748b; }
+        form { display: flex; flex-direction: column; gap: 18px; }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(248, 250, 252, 0.9);
+            font-size: 15px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #1e293b;
+        }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .alert::before { content: '⚠'; font-size: 18px; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .table-card { padding: 0; }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 26px 28px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .table-header h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .table-header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .table-wrapper { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 14px;
+        }
+        thead tr { background: rgba(248, 250, 252, 0.9); }
+        th, td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+            text-align: left;
+            color: #1f2937;
+        }
+        th:first-child, td:first-child { padding-left: 28px; }
+        th:last-child, td:last-child { padding-right: 28px; }
+        tbody tr:hover { background: rgba(59, 130, 246, 0.06); }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .content-preview {
+            max-width: 320px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #0f172a;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-public { background: rgba(34, 197, 94, 0.14); color: #15803d; }
+        .badge-private { background: rgba(100, 116, 139, 0.15); color: #334155; }
+        .empty-state {
+            padding: 32px;
+            text-align: center;
+            font-size: 15px;
+            color: #64748b;
+        }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .nav-actions { width: 100%; }
+            .table-header { flex-direction: column; align-items: flex-start; }
+            th, td { white-space: nowrap; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>网络剪贴板</h1>
-        <div>
-            <a href="/" class="back">返回文件管理</a>
-            <a href="/personal_clipboard" class="back">个人剪贴板</a>
-            <a href="/logout" class="logout">退出 ({{ username }})</a>
-        </div>
+    <div class="page-wrapper">
+        <header class="header card">
+            <div>
+                <h1>网络剪贴板</h1>
+                <p class="subtitle">集中管理临时片段，支持公开分享或私密留存。</p>
+            </div>
+            <div class="nav-actions">
+                <span class="tag">当前用户 {{ username }}</span>
+                <a href="/">文件管理</a>
+                <a href="/personal_clipboard">个人剪贴板</a>
+                <a href="/logout" class="btn btn-danger">退出</a>
+            </div>
+        </header>
+
+        <section class="card form-card">
+            <div class="form-header">
+                <h2>添加新内容</h2>
+                <p class="helper-text">支持 5000 字符以内的文本，可勾选“公开”生成共享链接。</p>
+            </div>
+            {% if error %}
+            <div class="alert alert-error">错误: {{ error }}</div>
+            {% endif %}
+            <form method="post">
+                <div>
+                    <label for="content" class="helper-text" style="font-size:14px;color:#1e293b;font-weight:600;">内容</label>
+                    <textarea name="content" id="content" rows="5" placeholder="在此输入要保存到剪贴板的内容..." required></textarea>
+                </div>
+                <label class="checkbox-row">
+                    <input type="checkbox" name="is_public" id="is_public" style="width:16px;height:16px;">
+                    公开内容（其他用户可见）
+                </label>
+                <div>
+                    <button type="submit" class="btn btn-primary">保存到剪贴板</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="card table-card">
+            <div class="table-header">
+                <h2>剪贴板内容</h2>
+                <div class="table-header-actions">
+                    <span class="helper-text">支持直接复制链接或内容，默认按时间倒序排列。</span>
+                </div>
+            </div>
+            {% if clipboard_items %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>内容预览</th>
+                            <th>所有者</th>
+                            <th>可见性</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in clipboard_items %}
+                        <tr>
+                            <td class="content-preview" title="{{ item.content }}">{{ item.content[:50] }}{% if item.content|length > 50 %}...{% endif %}</td>
+                            <td>{{ item.owner }}</td>
+                            <td>
+                                {% if item.is_public %}
+                                <span class="badge badge-public">公开</span>
+                                {% else %}
+                                <span class="badge badge-private">私有</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.created_at[:19].replace('T', ' ') }}</td>
+                            <td class="actions">
+                                {% if item.is_public %}
+                                <a href="/clipboard/public/{{ item.id }}" class="btn btn-success copy" target="_blank">复制链接</a>
+                                {% else %}
+                                <a href="/clipboard/get/{{ item.id }}" class="btn btn-success copy" target="_blank">复制内容</a>
+                                {% endif %}
+                                {% if item.owner == username %}
+                                <a href="/clipboard/delete/{{ item.id }}" class="btn btn-danger" onclick="return confirm('确定要删除此剪贴板内容吗？')">删除</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">剪贴板中没有内容，先添加一条试试吧。</div>
+            {% endif %}
+        </section>
     </div>
-    
-    <div class="clipboard-form">
-        <h2>添加新内容</h2>
-        {% if error %}
-        <p style="color: red;">错误: {{ error }}</p>
-        {% endif %}
-        <form method="post">
-            <p>
-                <label>内容:</label><br>
-                <textarea name="content" rows="4" placeholder="在此输入要保存到剪贴板的内容..." required style="margin-right: 10px;"></textarea>
-            </p>
-            <p>
-                <input type="checkbox" name="is_public" id="is_public">
-                <label for="is_public">公开内容（其他用户可见）</label>
-            </p>
-            <p>
-                <input type="submit" value="保存到剪贴板">
-            </p>
-        </form>
-    </div>
-    
-    <h2>剪贴板内容</h2>
-    {% if clipboard_items %}
-    <table>
-        <thead>
-            <tr>
-                <th>内容预览</th>
-                <th>所有者</th>
-                <th>可见性</th>
-                <th>创建时间</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in clipboard_items %}
-            <tr>
-                <td class="content-preview">{{ item.content[:50] }}{% if item.content|length > 50 %}...{% endif %}</td>
-                <td>{{ item.owner }}</td>
-                <td>
-                    {% if item.is_public %}
-                    <span class="public">公开</span>
-                    {% else %}
-                    <span class="private">私有</span>
-                    {% endif %}
-                </td>
-                <td>{{ item.created_at[:19].replace('T', ' ') }}</td>
-                <td class="actions">
-                    {% if item.is_public %}
-                    <a href="/clipboard/public/{{ item.id }}" class="copy" target="_blank">复制链接</a>
-                    {% else %}
-                    <a href="/clipboard/get/{{ item.id }}" class="copy" target="_blank">复制</a>
-                    {% endif %}
-                    {% if item.owner == username %}
-                    <a href="/clipboard/delete/{{ item.id }}" class="delete" onclick="return confirm('确定要删除此剪贴板内容吗？')">删除</a>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>剪贴板中没有内容。</p>
-    {% endif %}
-    
+
     <script>
         // 复制到剪贴板的辅助函数
         function copyToClipboard(text, successMessage, fallbackLabel) {
@@ -986,86 +1486,228 @@ personal_clipboard_template = '''
     <meta charset="utf-8">
     <style>
         * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
-        h1 { color: #333; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .logout { background: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
-        .logout:hover { background: #c82333; }
-        .back { background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
-        .back:hover { background: #005a87; }
-        .personal-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-        input[type="text"], textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 3px; }
-        input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
-        input[type="submit"]:hover { background: #218838; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        tr:hover { background-color: #f5f5f5; }
-        .actions a { margin-right: 10px; text-decoration: none; padding: 5px 10px; border-radius: 3px; }
-        .view { background: #007cba; color: white; }
-        .delete { background: #dc3545; color: white; }
-        .actions a:hover { opacity: 0.8; }
-        .content-preview { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #eff6ff, #f8fafc);
+            color: #0f172a;
+        }
+        .page-wrapper {
+            max-width: 1080px;
+            margin: 48px auto;
+            padding: 0 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        a { text-decoration: none; }
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .header .subtitle { margin-top: 6px; font-size: 15px; color: #475569; }
+        .nav-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+        .nav-actions a { color: #1d4ed8; font-weight: 600; }
+        .nav-actions a:hover { color: #1e3a8a; }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.1);
+            color: #1d4ed8;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+        }
+        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        .btn-danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25);
+        }
+        .btn-danger:hover { background: linear-gradient(90deg, #dc2626, #b91c1c); transform: translateY(-1px); }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            color: #1f2937;
+        }
+        .btn-outline:hover { background: rgba(15, 23, 42, 0.05); transform: translateY(-1px); }
+        .form-card { display: flex; flex-direction: column; gap: 20px; }
+        .form-header { display: flex; flex-direction: column; gap: 6px; }
+        .form-header h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .helper-text { font-size: 13px; color: #64748b; }
+        form { display: flex; flex-direction: column; gap: 18px; }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(248, 250, 252, 0.9);
+            font-size: 15px;
+        }
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        textarea { resize: vertical; min-height: 120px; }
+        .table-card { padding: 0; }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 26px 28px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .table-header h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .table-wrapper { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 14px;
+        }
+        thead tr { background: rgba(248, 250, 252, 0.9); }
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+            color: #1f2937;
+        }
+        th:first-child, td:first-child { padding-left: 28px; }
+        th:last-child, td:last-child { padding-right: 28px; }
+        tbody tr:hover { background: rgba(59, 130, 246, 0.06); }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .empty-state {
+            padding: 32px;
+            text-align: center;
+            font-size: 15px;
+            color: #64748b;
+        }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .nav-actions { width: 100%; }
+            .table-header { flex-direction: column; align-items: flex-start; }
+            th, td { white-space: nowrap; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>个人剪贴板</h1>
-        <div>
-            <a href="/clipboard" class="back">返回网络剪贴板</a>
-            <a href="/" class="back">返回文件管理</a>
-            <a href="/logout" class="logout">退出 ({{ username }})</a>
-        </div>
+    <div class="page-wrapper">
+        <header class="header card">
+            <div>
+                <h1>个人剪贴板</h1>
+                <p class="subtitle">创建多个私有笔记本，集中同步常用片段。</p>
+            </div>
+            <div class="nav-actions">
+                <span class="tag">当前用户 {{ username }}</span>
+                <a href="/clipboard">网络剪贴板</a>
+                <a href="/">文件管理</a>
+                <a href="/logout" class="btn btn-danger">退出</a>
+            </div>
+        </header>
+
+        <section class="card form-card">
+            <div class="form-header">
+                <h2>创建新的个人剪贴板</h2>
+                <p class="helper-text">用于保存私人敏感片段，默认仅自己可见。</p>
+            </div>
+            {% if error %}
+            <div class="alert alert-error">错误: {{ error }}</div>
+            {% endif %}
+            <form method="post">
+                <div>
+                    <label for="name" class="helper-text" style="font-size:14px;color:#1e293b;font-weight:600;">名称</label>
+                    <input type="text" name="name" id="name" placeholder="剪贴板名称" required>
+                </div>
+                <div>
+                    <label for="content" class="helper-text" style="font-size:14px;color:#1e293b;font-weight:600;">初始内容</label>
+                    <textarea name="content" id="content" rows="5" placeholder="可选，填写后会作为默认内容"></textarea>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">创建剪贴板</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="card table-card">
+            <div class="table-header">
+                <h2>我的个人剪贴板</h2>
+                <span class="helper-text">按更新时间排序，便于快速找到最近修改的记录。</span>
+            </div>
+            {% if personal_clipboards %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>创建时间</th>
+                            <th>最后更新</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for clipboard in personal_clipboards %}
+                        <tr>
+                            <td>{{ clipboard.name }}</td>
+                            <td>{{ clipboard.created_at[:19].replace('T', ' ') }}</td>
+                            <td>{{ clipboard.updated_at[:19].replace('T', ' ') }}</td>
+                            <td class="actions">
+                                <a href="/personal_clipboard/{{ clipboard.id }}" class="btn btn-outline">查看/编辑</a>
+                                <a href="/personal_clipboard/delete/{{ clipboard.id }}" class="btn btn-danger" onclick="return confirm('确定要删除 {{ clipboard.name }} 吗？')">删除</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">没有个人剪贴板，立即创建一个专属存档吧。</div>
+            {% endif %}
+        </section>
     </div>
-    
-    <div class="personal-form">
-        <h2>创建新的个人剪贴板</h2>
-        {% if error %}
-        <p style="color: red;">错误: {{ error }}</p>
-        {% endif %}
-        <form method="post">
-            <p>
-                <label>名称:</label><br>
-                <input type="text" name="name" placeholder="剪贴板名称" required style="margin-right: 10px;">
-            </p>
-            <p>
-                <label>初始内容:</label><br>
-                <textarea name="content" rows="4" placeholder="初始内容..." style="margin-right: 10px;"></textarea>
-            </p>
-            <p>
-                <input type="submit" value="创建剪贴板">
-            </p>
-        </form>
-    </div>
-    
-    <h2>我的个人剪贴板</h2>
-    {% if personal_clipboards %}
-    <table>
-        <thead>
-            <tr>
-                <th>名称</th>
-                <th>创建时间</th>
-                <th>最后更新</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for clipboard in personal_clipboards %}
-            <tr>
-                <td>{{ clipboard.name }}</td>
-                <td>{{ clipboard.created_at[:19].replace('T', ' ') }}</td>
-                <td>{{ clipboard.updated_at[:19].replace('T', ' ') }}</td>
-                <td class="actions">
-                    <a href="/personal_clipboard/{{ clipboard.id }}" class="view">查看/编辑</a>
-                    <a href="/personal_clipboard/delete/{{ clipboard.id }}" class="delete" onclick="return confirm('确定要删除 {{ clipboard.name }} 吗？')">删除</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>没有个人剪贴板。</p>
-    {% endif %}
 </body>
 </html>
 '''
@@ -1079,48 +1721,164 @@ personal_clipboard_detail_template = '''
     <meta charset="utf-8">
     <style>
         * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
-        h1 { color: #333; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .logout { background: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
-        .logout:hover { background: #c82333; }
-        .back { background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
-        .back:hover { background: #005a87; }
-        .personal-detail-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-        textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 3px; }
-        input[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }
-        input[type="submit"]:hover { background: #218838; }
-        .info { background: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #eff6ff, #f8fafc);
+            color: #0f172a;
+        }
+        a { text-decoration: none; }
+        .page-wrapper {
+            max-width: 960px;
+            margin: 48px auto;
+            padding: 0 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .nav-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .nav-actions a { color: #1d4ed8; font-weight: 600; }
+        .nav-actions a:hover { color: #1e3a8a; }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.1);
+            color: #1d4ed8;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+        }
+        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+        .btn-danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25);
+        }
+        .btn-danger:hover { background: linear-gradient(90deg, #dc2626, #b91c1c); transform: translateY(-1px); }
+        .info-card {
+            background: linear-gradient(135deg, #eef2ff, #ffffff);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 15px;
+            color: #1e293b;
+        }
+        .info-card strong { color: #0f172a; }
+        .helper-text { font-size: 13px; color: #64748b; }
+        form { display: flex; flex-direction: column; gap: 18px; }
+        textarea {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(248, 250, 252, 0.9);
+            font-size: 15px;
+            min-height: 320px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .alert::before { content: '⚠'; font-size: 18px; }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .nav-actions { width: 100%; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>个人剪贴板 - {{ clipboard.name }}</h1>
-        <div>
-            <a href="/personal_clipboard" class="back">返回列表</a>
-            <a href="/personal_clipboard/{{ clipboard.id }}" class="back">刷新</a>
-            <a href="/logout" class="logout">退出 ({{ username }})</a>
-        </div>
-    </div>
-    
-    <div class="info">
-        <strong>创建时间:</strong> {{ clipboard.created_at[:19].replace('T', ' ') }}<br>
-        <strong>最后更新:</strong> {{ clipboard.updated_at[:19].replace('T', ' ') }}
-    </div>
-    
-    <div class="personal-detail-form">
-        <h2>编辑内容</h2>
-        {% if error %}
-        <p style="color: red;">错误: {{ error }}</p>
-        {% endif %}
-        <form method="post">
-            <p>
-                <textarea name="content" rows="15" style="margin-right: 10px;">{{ clipboard.content }}</textarea>
-            </p>
-            <p>
-                <input type="submit" value="保存内容">
-            </p>
-        </form>
+    <div class="page-wrapper">
+        <header class="header card">
+            <div>
+                <h1>个人剪贴板 - {{ clipboard.name }}</h1>
+                <p style="margin:6px 0 0;color:#475569;font-size:15px;">实时保存每次改动，适合维护个人配置片段。</p>
+            </div>
+            <div class="nav-actions">
+                <span class="tag">当前用户 {{ username }}</span>
+                <a href="/personal_clipboard">返回列表</a>
+                <a href="/personal_clipboard/{{ clipboard.id }}">刷新</a>
+                <a href="/logout" class="btn btn-danger">退出</a>
+            </div>
+        </header>
+
+        <section class="card info-card">
+            <div><strong>创建时间:</strong> {{ clipboard.created_at[:19].replace('T', ' ') }}</div>
+            <div><strong>最后更新:</strong> {{ clipboard.updated_at[:19].replace('T', ' ') }}</div>
+        </section>
+
+        <section class="card">
+            <h2 style="margin-top:0;font-size:22px;color:#0f172a;">编辑内容</h2>
+            <p class="helper-text" style="margin-top:4px;margin-bottom:20px;">支持 Markdown 与代码片段，保存后立即生效。</p>
+            {% if error %}
+            <div class="alert">错误: {{ error }}</div>
+            {% endif %}
+            <form method="post">
+                <textarea name="content" rows="15">{{ clipboard.content }}</textarea>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                    <button type="submit" class="btn btn-primary">保存内容</button>
+                    <a href="/personal_clipboard" class="btn btn-secondary">返回上一页</a>
+                </div>
+            </form>
+        </section>
     </div>
 </body>
 </html>
@@ -1138,201 +1896,286 @@ preview_template = '''
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
-        h1 { color: #333; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .back { background: #007cba; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
-        .back:hover { background: #005a87; }
-        .download { background: #28a745; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
-        .download:hover { background: #218838; }
-        .preview-container { margin-top: 20px; }
-        .file-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .preview-content { 
-            border: 1px solid #ddd; 
-            border-radius: 5px; 
-            padding: 0; 
-            max-height: 70vh; 
-            overflow: auto; 
-            background: white;
-            box-sizing: border-box;
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #eff6ff, #f8fafc);
+            color: #0f172a;
         }
-        pre { 
-            white-space: pre-wrap; 
-            word-wrap: break-word; 
-            margin: 0; 
-            font-family: 'Courier New', monospace;
+        a { text-decoration: none; }
+        .page-wrapper {
+            max-width: 1080px;
+            margin: 48px auto;
+            padding: 0 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
         }
-        code { font-family: 'Courier New', monospace; }
-        /* 调整highlight.js的默认样式以匹配纯文本视图 */
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .header .subtitle { margin-top: 6px; font-size: 15px; color: #475569; }
+        .nav-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+        }
+        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            color: #1f2937;
+        }
+        .btn-outline:hover { background: rgba(15, 23, 42, 0.05); transform: translateY(-1px); }
+        .meta-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: linear-gradient(135deg, #eef2ff, #ffffff);
+        }
+        .meta-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+        .meta-item { flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px; }
+        .meta-label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; }
+        .meta-value { font-size: 16px; font-weight: 600; color: #0f172a; word-break: break-all; }
+        .preview-card { display: flex; flex-direction: column; gap: 20px; }
+        .helper-text { font-size: 13px; color: #64748b; }
+        .alert { padding: 16px 20px; border-radius: 14px; font-size: 14px; font-weight: 500; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .preview-content {
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(255, 255, 255, 0.95);
+            max-height: 70vh;
+            overflow: auto;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            padding: 18px 20px;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 14px;
+            color: #0f172a;
+            background: transparent;
+        }
+        code { font-family: 'JetBrains Mono', 'Courier New', monospace; }
         pre code.hljs {
             padding: 0 !important;
             background: transparent !important;
             display: block;
             overflow-x: auto;
         }
-        img { max-width: 100%; height: auto; }
-        .pdf-container { width: 100%; height: 80vh; }
-        .no-preview { 
-            text-align: center; 
-            padding: 40px; 
-            color: #666; 
-            font-style: italic;
+        img { max-width: 100%; height: auto; display: block; border-radius: 14px; }
+        .pdf-container { width: 100%; height: 70vh; border: none; border-radius: 12px; }
+        .no-preview {
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            color: #475569;
+            background: rgba(59, 130, 246, 0.08);
         }
-        .preview-error { 
-            color: #dc3545; 
-            background-color: #f8d7da; 
-            border: 1px solid #f5c6cb; 
-            padding: 15px; 
-            border-radius: 5px;
-            margin: 20px 0;
+        .no-preview p { margin: 12px 0; }
+        .preview-error { border-radius: 14px; padding: 18px 20px; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+        .toggle-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+        .toggle-btn {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+            border-radius: 999px;
+            padding: 8px 18px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
         }
-        /* 代码高亮样式 */
+        .toggle-btn:hover { background: rgba(37, 99, 235, 0.2); color: #1d4ed8; transform: translateY(-1px); }
+        .toggle-btn.active { background: linear-gradient(90deg, #2563eb, #1d4ed8); color: #ffffff; box-shadow: 0 10px 20px rgba(29, 78, 216, 0.28); }
+        .markdown-content { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.65; padding: 20px; }
+        .markdown-content h1 { color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+        .markdown-content h2 { color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+        .markdown-content h3 { color: #334155; }
+        .markdown-content code { background-color: rgba(15, 23, 42, 0.08); padding: 2px 6px; border-radius: 6px; }
+        .markdown-content pre { background-color: rgba(15, 23, 42, 0.08); padding: 16px; border-radius: 12px; overflow: auto; }
+        .markdown-content blockquote { border-left: 4px solid #93c5fd; padding: 0 18px; color: #475569; }
+        .markdown-content ul, .markdown-content ol { padding-left: 26px; }
+        .markdown-content a { color: #1d4ed8; }
+        .markdown-content table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+        .markdown-content th, .markdown-content td { border: 1px solid #e2e8f0; padding: 8px 12px; }
+        .markdown-content th { background-color: rgba(59, 130, 246, 0.1); }
         .highlight .hll { background-color: #ffffcc }
         .highlight  { background: #f8f8f8; }
-        .highlight .c { color: #408080; font-style: italic } /* Comment */
-        .highlight .err { border: 1px solid #FF0000 } /* Error */
-        .highlight .k { color: #008000; font-weight: bold } /* Keyword */
-        .highlight .o { color: #666666 } /* Operator */
-        .highlight .cm { color: #408080; font-style: italic } /* Comment.Multiline */
-        .highlight .cp { color: #BC7A00 } /* Comment.Preproc */
-        .highlight .c1 { color: #408080; font-style: italic } /* Comment.Single */
-        .highlight .cs { color: #408080; font-style: italic } /* Comment.Special */
-        .highlight .gd { color: #A00000 } /* Generic.Deleted */
-        .highlight .ge { font-style: italic } /* Generic.Emph */
-        .highlight .gr { color: #FF0000 } /* Generic.Error */
-        .highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
-        .highlight .gi { color: #00A000 } /* Generic.Inserted */
-        .highlight .go { color: #888888 } /* Generic.Output */
-        .highlight .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
-        .highlight .gs { font-weight: bold } /* Generic.Strong */
-        .highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
-        .highlight .gt { color: #0044DD } /* Generic.Traceback */
-        .highlight .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
-        .highlight .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
-        .highlight .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
-        .highlight .kp { color: #008000 } /* Keyword.Pseudo */
-        .highlight .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
-        .highlight .kt { color: #B00040 } /* Keyword.Type */
-        .highlight .m { color: #666666 } /* Literal.Number */
-        .highlight .s { color: #BA2121 } /* Literal.String */
-        .highlight .na { color: #7D9029 } /* Name.Attribute */
-        .highlight .nb { color: #008000 } /* Name.Builtin */
-        .highlight .nc { color: #0000FF; font-weight: bold } /* Name.Class */
-        .highlight .no { color: #880000 } /* Name.Constant */
-        .highlight .nd { color: #AA22FF } /* Name.Decorator */
-        .highlight .ni { color: #999999; font-weight: bold } /* Name.Entity */
-        .highlight .ne { color: #D2413A; font-weight: bold } /* Name.Exception */
-        .highlight .nf { color: #0000FF } /* Name.Function */
-        .highlight .nl { color: #A0A000 } /* Name.Label */
-        .highlight .nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
-        .highlight .nt { color: #008000; font-weight: bold } /* Name.Tag */
-        .highlight .nv { color: #19177C } /* Name.Variable */
-        .highlight .ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
-        .highlight .w { color: #bbbbbb } /* Text.Whitespace */
-        .highlight .mf { color: #666666 } /* Literal.Number.Float */
-        .highlight .mh { color: #666666 } /* Literal.Number.Hex */
-        .highlight .mi { color: #666666 } /* Literal.Number.Integer */
-        .highlight .mo { color: #666666 } /* Literal.Number.Oct */
-        .highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
-        .highlight .sc { color: #BA2121 } /* Literal.String.Char */
-        .highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
-        .highlight .s2 { color: #BA2121 } /* Literal.String.Double */
-        .highlight .se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
-        .highlight .sh { color: #BA2121 } /* Literal.String.Heredoc */
-        .highlight .si { color: #BB6688; font-weight: bold } /* Literal.String.Interpol */
-        .highlight .sx { color: #008000 } /* Literal.String.Other */
-        .highlight .sr { color: #BB6688 } /* Literal.String.Regex */
-        .highlight .s1 { color: #BA2121 } /* Literal.String.Single */
-        .highlight .ss { color: #19177C } /* Literal.String.Symbol */
-        .highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
-        .highlight .vc { color: #19177C } /* Name.Variable.Class */
-        .highlight .vg { color: #19177C } /* Name.Variable.Global */
-        .highlight .vi { color: #19177C } /* Name.Variable.Instance */
-        .highlight .il { color: #666666 } /* Literal.Number.Integer.Long */
-        
-        /* Markdown渲染样式 */
-        .markdown-content { font-family: Arial, sans-serif; }
-        .markdown-content h1 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
-        .markdown-content h2 { color: #444; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-        .markdown-content h3 { color: #555; }
-        .markdown-content code { background-color: #f5f5f5; padding: 2px 4px; border-radius: 3px; font-family: 'Courier New', monospace; }
-        .markdown-content pre { background-color: #f8f8f8; padding: 10px; border-radius: 5px; overflow: auto; }
-        .markdown-content pre code { background-color: transparent; padding: 0; }
-        .markdown-content blockquote { border-left: 4px solid #ddd; padding: 0 15px; color: #666; }
-        .markdown-content ul, .markdown-content ol { padding-left: 30px; }
-        .markdown-content li { margin-bottom: 5px; }
-        .markdown-content a { color: #007cba; text-decoration: none; }
-        .markdown-content a:hover { text-decoration: underline; }
-        .markdown-content table { border-collapse: collapse; width: 100%; margin: 15px 0; }
-        .markdown-content th, .markdown-content td { border: 1px solid #ddd; padding: 8px 12px; }
-        .markdown-content th { background-color: #f5f5f5; font-weight: bold; }
-        
-        /* 切换按钮样式 */
-        .toggle-buttons { margin: 10px 0; }
-        .toggle-btn { 
-            background: #007cba; 
-            color: white; 
-            padding: 5px 10px; 
-            border: none; 
-            border-radius: 3px; 
-            cursor: pointer; 
-            margin-right: 10px;
+        .highlight .c { color: #408080; font-style: italic }
+        .highlight .err { border: 1px solid #FF0000 }
+        .highlight .k { color: #008000; font-weight: bold }
+        .highlight .o { color: #666666 }
+        .highlight .cm { color: #408080; font-style: italic }
+        .highlight .cp { color: #BC7A00 }
+        .highlight .c1 { color: #408080; font-style: italic }
+        .highlight .cs { color: #408080; font-style: italic }
+        .highlight .gd { color: #A00000 }
+        .highlight .ge { font-style: italic }
+        .highlight .gr { color: #FF0000 }
+        .highlight .gh { color: #000080; font-weight: bold }
+        .highlight .gi { color: #00A000 }
+        .highlight .go { color: #888888 }
+        .highlight .gp { color: #000080; font-weight: bold }
+        .highlight .gs { font-weight: bold }
+        .highlight .gu { color: #800080; font-weight: bold }
+        .highlight .gt { color: #0044DD }
+        .highlight .kc { color: #008000; font-weight: bold }
+        .highlight .kd { color: #008000; font-weight: bold }
+        .highlight .kn { color: #008000; font-weight: bold }
+        .highlight .kp { color: #008000 }
+        .highlight .kr { color: #008000; font-weight: bold }
+        .highlight .kt { color: #B00040 }
+        .highlight .m { color: #666666 }
+        .highlight .s { color: #BA2121 }
+        .highlight .na { color: #7D9029 }
+        .highlight .nb { color: #008000 }
+        .highlight .nc { color: #0000FF; font-weight: bold }
+        .highlight .no { color: #880000 }
+        .highlight .nd { color: #AA22FF }
+        .highlight .ni { color: #999999; font-weight: bold }
+        .highlight .ne { color: #D2413A; font-weight: bold }
+        .highlight .nf { color: #0000FF }
+        .highlight .nl { color: #A0A000 }
+        .highlight .nn { color: #0000FF; font-weight: bold }
+        .highlight .nt { color: #008000; font-weight: bold }
+        .highlight .nv { color: #19177C }
+        .highlight .ow { color: #AA22FF; font-weight: bold }
+        .highlight .w { color: #bbbbbb }
+        .highlight .mf { color: #666666 }
+        .highlight .mh { color: #666666 }
+        .highlight .mi { color: #666666 }
+        .highlight .mo { color: #666666 }
+        .highlight .sb { color: #BA2121 }
+        .highlight .sc { color: #BA2121 }
+        .highlight .sd { color: #BA2121; font-style: italic }
+        .highlight .s2 { color: #BA2121 }
+        .highlight .se { color: #BB6622; font-weight: bold }
+        .highlight .sh { color: #BA2121 }
+        .highlight .si { color: #BB6688; font-weight: bold }
+        .highlight .sx { color: #008000 }
+        .highlight .sr { color: #BB6688 }
+        .highlight .s1 { color: #BA2121 }
+        .highlight .ss { color: #19177C }
+        .highlight .bp { color: #008000 }
+        .highlight .vc { color: #19177C }
+        .highlight .vg { color: #19177C }
+        .highlight .vi { color: #19177C }
+        .highlight .il { color: #666666 }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .nav-actions { width: 100%; }
+            .meta-grid { flex-direction: column; }
+            .preview-content { max-height: none; }
+            .pdf-container { height: 60vh; }
         }
-        .toggle-btn:hover { background: #005a87; }
-        .toggle-btn.active { background: #28a745; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>文件预览</h1>
-        <div>
-            <a href="/" class="back">返回文件列表</a>
-            <a href="/download/{{ filename }}" class="download">下载文件</a>
-        </div>
+    <div class="page-wrapper">
+        <header class="header card">
+            <div>
+                <h1>文件预览</h1>
+                <p class="subtitle">支持常见文本、图片与 PDF 的快速查看。</p>
+            </div>
+            <div class="nav-actions">
+                <a href="/" class="btn btn-secondary">返回文件管理</a>
+                <a href="/download/{{ filename }}" class="btn btn-primary">下载文件</a>
+            </div>
+        </header>
+
+        <section class="card meta-card">
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <span class="meta-label">文件名</span>
+                    <span class="meta-value">{{ filename }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">文件大小</span>
+                    <span class="meta-value">{{ file_size }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">修改时间</span>
+                    <span class="meta-value">{{ modified_time }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card preview-card">
+            {% if error %}
+            <div class="preview-error"><strong>预览错误:</strong> {{ error }}</div>
+            {% elif preview_type == 'text' %}
+            <div class="toggle-buttons">
+                <button id="rawBtn" class="toggle-btn active" onclick="toggleView('raw')">纯文本</button>
+                <button id="renderedBtn" class="toggle-btn" onclick="toggleView('rendered')">渲染显示</button>
+            </div>
+            <div class="preview-content">
+                <pre id="rawContent" style="display: block;">{{ content }}</pre>
+                <div id="renderedContent" style="display: none; padding: 20px;"></div>
+            </div>
+            {% elif preview_type == 'image' %}
+            <div class="preview-content" style="padding: 20px;">
+                <img src="/download/{{ filename }}" alt="{{ filename }}">
+            </div>
+            {% elif preview_type == 'pdf' %}
+            <div class="preview-content" style="padding: 20px;">
+                <embed src="/download/{{ filename }}" type="application/pdf" class="pdf-container">
+                <p class="helper-text" style="margin-top:16px; color:#475569;">如果未能显示，请直接<a href="/download/{{ filename }}" style="color:#1d4ed8;">下载文件</a>。</p>
+            </div>
+            {% elif preview_type == 'archive' %}
+            <div class="no-preview">
+                <p>这是一个压缩包文件（{{ filename.split('.')[-1].lower()|upper }} 格式）。</p>
+                <p><a href="/download/{{ filename }}" class="btn btn-primary">下载后解压查看内容</a></p>
+            </div>
+            {% else %}
+            <div class="no-preview">
+                <p>该文件类型暂不支持在线预览。</p>
+                <p><a href="/download/{{ filename }}" class="btn btn-primary">点击下载到本地查看</a></p>
+            </div>
+            {% endif %}
+        </section>
     </div>
-    
-    <div class="file-info">
-        <strong>文件名:</strong> {{ filename }}<br>
-        <strong>文件大小:</strong> {{ file_size }}<br>
-        <strong>修改时间:</strong> {{ modified_time }}
-    </div>
-    
-    <div class="preview-container">
-        {% if error %}
-        <div class="preview-error">
-            <strong>预览错误:</strong> {{ error }}
-        </div>
-        {% elif preview_type == 'text' %}
-        <div class="toggle-buttons">
-            <button id="rawBtn" class="toggle-btn active" onclick="toggleView('raw')">纯文本</button>
-            <button id="renderedBtn" class="toggle-btn" onclick="toggleView('rendered')">渲染显示</button>
-        </div>
-        <div class="preview-content">
-            <pre id="rawContent" style="display: block; padding: 15px; margin: 0;">{{ content }}</pre>
-            <div id="renderedContent" style="display: none; padding: 15px;"></div>
-        </div>
-        {% elif preview_type == 'image' %}
-        <div class="preview-content">
-            <img src="/download/{{ filename }}" alt="{{ filename }}">
-        </div>
-        {% elif preview_type == 'pdf' %}
-        <div class="preview-content">
-            <embed src="/download/{{ filename }}" type="application/pdf" class="pdf-container">
-            <p>如果上方没有显示PDF，请<a href="/download/{{ filename }}">点击下载</a>查看。</p>
-        </div>
-        {% elif preview_type == 'archive' %}
-        <div class="no-preview">
-            <p>这是一个压缩包文件（{{ filename.split('.')[-1].lower()|upper }}格式）。</p>
-            <p><a href="/download/{{ filename }}" class="download">点击下载</a>文件到本地解压查看内容。</p>
-        </div>
-        {% else %}
-        <div class="no-preview">
-            <p>该文件类型不支持在线预览。</p>
-            <p><a href="/download/{{ filename }}" class="download">点击下载</a>文件到本地查看。</p>
-        </div>
-        {% endif %}
-    </div>
-    
+
     <script>
         // 获取文件扩展名
         function getFileExtension(filename) {
@@ -1366,37 +2209,29 @@ preview_template = '''
         function renderContent() {
             const filename = "{{ filename }}";
             const extension = getFileExtension(filename);
-            // 检查content是否存在，避免未定义错误
             const content = {{ content|tojson if content else '""' }};
             const renderedContent = document.getElementById('renderedContent');
             
-            // 如果没有内容可渲染，直接返回
             if (!content) {
                 renderedContent.innerHTML = '<p>该文件类型不支持渲染显示。</p>';
                 return;
             }
             
             if (extension === 'md') {
-                // Markdown渲染
                 const md = markdownit();
-                renderedContent.innerHTML = '<div class="markdown-content">' + md.render(content) + '</div>';
+                renderedContent.innerHTML = '<div class=\"markdown-content\">' + md.render(content) + '</div>';
             } else if (['py', 'js', 'java', 'c', 'cpp', 'html', 'css', 'php', 'sql', 'xml', 'json', 'yaml', 'yml', 'ini', 'cfg', 'conf', 'sh', 'pl', 'rb', 'go'].includes(extension)) {
-                // 代码高亮
-                // 转义HTML特殊字符以提高安全性
                 const escapedContent = content
                     .replace(/&/g, '&amp;')
                     .replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;');
-                renderedContent.innerHTML = '<pre><code class="language-' + extension + '">' + escapedContent + '</code></pre>';
-                // 使用highlight.js进行代码高亮
+                renderedContent.innerHTML = '<pre><code class=\"language-' + extension + '\">' + escapedContent + '</code></pre>';
                 if (typeof hljs !== 'undefined' && typeof hljs.highlightAll === 'function') {
                     hljs.highlightAll();
                 }
             } else {
-                // 其他文本文件保持原样显示
-                // 转义HTML特殊字符以提高安全性
                 const escapedContent = content
                     .replace(/&/g, '&amp;')
                     .replace(/</g, '&lt;')
@@ -1407,9 +2242,7 @@ preview_template = '''
             }
         }
         
-        // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
-            // 如果是文本文件，默认显示纯文本视图
             const rawBtn = document.getElementById('rawBtn');
             if (rawBtn) {
                 rawBtn.classList.add('active');
