@@ -1,0 +1,303 @@
+/* Shared layout and component styles for management and clipboard pages */
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(120deg, #eff6ff, #f8fafc);
+    color: #0f172a;
+}
+a {
+    text-decoration: none;
+}
+.page-wrapper {
+    max-width: 1080px;
+    margin: 48px auto;
+    padding: 0 24px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+.card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+.header h1 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 700;
+    color: #0f172a;
+}
+.header .subtitle {
+    margin-top: 6px;
+    font-size: 15px;
+    color: #475569;
+}
+.nav-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.nav-actions a {
+    color: #1d4ed8;
+    font-weight: 600;
+}
+.nav-actions a:hover {
+    color: #1e3a8a;
+}
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.1);
+    color: #1d4ed8;
+    font-size: 13px;
+    font-weight: 600;
+}
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+}
+.btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+.btn-primary {
+    background: linear-gradient(90deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+}
+.btn-primary:hover {
+    background: linear-gradient(90deg, #1d4ed8, #1e40af);
+    transform: translateY(-1px);
+}
+.btn-secondary {
+    background: rgba(15, 23, 42, 0.08);
+    color: #1f2937;
+}
+.btn-secondary:hover {
+    background: rgba(15, 23, 42, 0.12);
+    transform: translateY(-1px);
+}
+.btn-success {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(34, 197, 94, 0.25);
+}
+.btn-success:hover {
+    background: linear-gradient(90deg, #16a34a, #15803d);
+    transform: translateY(-1px);
+}
+.btn-danger {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25);
+}
+.btn-danger:hover {
+    background: linear-gradient(90deg, #dc2626, #b91c1c);
+    transform: translateY(-1px);
+}
+.btn-outline {
+    background: transparent;
+    color: #1f2937;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+}
+.btn-outline:hover {
+    background: rgba(15, 23, 42, 0.05);
+    transform: translateY(-1px);
+}
+.form-card {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.form-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.form-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.form-header h2 {
+    margin: 0;
+    font-size: 22px;
+    color: #0f172a;
+}
+.helper-text {
+    font-size: 13px;
+    color: #64748b;
+}
+.form-field {
+    display: flex;
+    flex-direction: column;
+}
+.input-label {
+    display: block;
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    background: rgba(248, 250, 252, 0.9);
+    font-size: 15px;
+    resize: vertical;
+}
+textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #1e293b;
+}
+.checkbox-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+.table-card {
+    padding: 0;
+}
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 26px 28px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+.table-header h2 {
+    margin: 0;
+    font-size: 22px;
+    color: #0f172a;
+}
+.table-header-actions,
+.table-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.table-wrapper {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
+}
+thead tr {
+    background: rgba(248, 250, 252, 0.9);
+}
+th,
+td {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    text-align: left;
+    color: #1f2937;
+}
+th:first-child,
+td:first-child {
+    padding-left: 28px;
+}
+th:last-child,
+td:last-child {
+    padding-right: 28px;
+}
+tbody tr:hover {
+    background: rgba(59, 130, 246, 0.06);
+}
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.content-preview {
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #0f172a;
+}
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.badge-public {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+.badge-private {
+    background: rgba(100, 116, 139, 0.15);
+    color: #334155;
+}
+.empty-state {
+    padding: 32px;
+    text-align: center;
+    font-size: 15px;
+    color: #64748b;
+}
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    .card {
+        padding: 20px;
+    }
+    .nav-actions,
+    .table-header-actions,
+    .table-actions,
+    .actions {
+        width: 100%;
+    }
+    .table-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    th,
+    td {
+        white-space: nowrap;
+    }
+}

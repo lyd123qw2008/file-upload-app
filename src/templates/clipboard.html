@@ -1,0 +1,376 @@
+
+<!doctype html>
+<html>
+<head>
+    <title>网络剪贴板</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #eff6ff, #f8fafc);
+            color: #0f172a;
+        }
+        a { text-decoration: none; }
+        .page-wrapper {
+            max-width: 1080px;
+            margin: 48px auto;
+            padding: 0 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .header .subtitle {
+            margin-top: 6px;
+            font-size: 15px;
+            color: #475569;
+        }
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .nav-actions a { color: #1d4ed8; font-weight: 600; }
+        .nav-actions a:hover { color: #1e3a8a; }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.1);
+            color: #1d4ed8;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+        }
+        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        .btn-success {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(34, 197, 94, 0.25);
+        }
+        .btn-success:hover { background: linear-gradient(90deg, #16a34a, #15803d); transform: translateY(-1px); }
+        .btn-danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25);
+        }
+        .btn-danger:hover { background: linear-gradient(90deg, #dc2626, #b91c1c); transform: translateY(-1px); }
+        .form-card {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .form-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-header h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .helper-text { font-size: 13px; color: #64748b; }
+        form { display: flex; flex-direction: column; gap: 18px; }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(248, 250, 252, 0.9);
+            font-size: 15px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #1e293b;
+        }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .alert::before { content: '⚠'; font-size: 18px; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .table-card { padding: 0; }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 26px 28px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .table-header h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .table-header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .table-wrapper { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 14px;
+        }
+        thead tr { background: rgba(248, 250, 252, 0.9); }
+        th, td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+            text-align: left;
+            color: #1f2937;
+        }
+        th:first-child, td:first-child { padding-left: 28px; }
+        th:last-child, td:last-child { padding-right: 28px; }
+        tbody tr:hover { background: rgba(59, 130, 246, 0.06); }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .content-preview {
+            max-width: 320px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #0f172a;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-public { background: rgba(34, 197, 94, 0.14); color: #15803d; }
+        .badge-private { background: rgba(100, 116, 139, 0.15); color: #334155; }
+        .empty-state {
+            padding: 32px;
+            text-align: center;
+            font-size: 15px;
+            color: #64748b;
+        }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .nav-actions { width: 100%; }
+            .table-header { flex-direction: column; align-items: flex-start; }
+            th, td { white-space: nowrap; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <header class="header card">
+            <div>
+                <h1>网络剪贴板</h1>
+                <p class="subtitle">集中管理临时片段，支持公开分享或私密留存。</p>
+            </div>
+            <div class="nav-actions">
+                <span class="tag">当前用户 {{ username }}</span>
+                <a href="/">文件管理</a>
+                <a href="/personal_clipboard">个人剪贴板</a>
+                <a href="/logout" class="btn btn-danger">退出</a>
+            </div>
+        </header>
+
+        <section class="card form-card">
+            <div class="form-header">
+                <h2>添加新内容</h2>
+                <p class="helper-text">支持 5000 字符以内的文本，可勾选“公开”生成共享链接。</p>
+            </div>
+            {% if error %}
+            <div class="alert alert-error">错误: {{ error }}</div>
+            {% endif %}
+            <form method="post">
+                <div class="form-field">
+                    <label for="content" class="input-label">内容</label>
+                    <textarea name="content" id="content" rows="5" placeholder="在此输入要保存到剪贴板的内容..." required></textarea>
+                </div>
+                <label class="checkbox-row">
+                    <input type="checkbox" name="is_public" id="is_public">
+                    公开内容（其他用户可见）
+                </label>
+                <div>
+                    <button type="submit" class="btn btn-primary">保存到剪贴板</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="card table-card">
+            <div class="table-header">
+                <h2>剪贴板内容</h2>
+                <div class="table-header-actions">
+                    <span class="helper-text">支持直接复制链接或内容，默认按时间倒序排列。</span>
+                </div>
+            </div>
+            {% if clipboard_items %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>内容预览</th>
+                            <th>所有者</th>
+                            <th>可见性</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in clipboard_items %}
+                        <tr>
+                            <td class="content-preview" title="{{ item.content }}">{{ item.content[:50] }}{% if item.content|length > 50 %}...{% endif %}</td>
+                            <td>{{ item.owner }}</td>
+                            <td>
+                                {% if item.is_public %}
+                                <span class="badge badge-public">公开</span>
+                                {% else %}
+                                <span class="badge badge-private">私有</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.created_at[:19].replace('T', ' ') }}</td>
+                            <td class="actions">
+                                {% if item.is_public %}
+                                <a href="/clipboard/public/{{ item.id }}" class="btn btn-success copy" target="_blank">复制链接</a>
+                                {% else %}
+                                <a href="/clipboard/get/{{ item.id }}" class="btn btn-success copy" target="_blank">复制内容</a>
+                                {% endif %}
+                                {% if item.owner == username %}
+                                <a href="/clipboard/delete/{{ item.id }}" class="btn btn-danger" onclick="return confirm('确定要删除此剪贴板内容吗？')">删除</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">剪贴板中没有内容，先添加一条试试吧。</div>
+            {% endif %}
+        </section>
+    </div>
+
+    <script>
+        // 复制到剪贴板的辅助函数
+        function copyToClipboard(text, successMessage, fallbackLabel) {
+            // 首先尝试使用现代Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert(successMessage);
+                }).catch(err => {
+                    console.error('Clipboard API 失败:', err);
+                    // 如果Clipboard API失败，使用降级方案
+                    fallbackCopyTextToClipboard(text, fallbackLabel);
+                });
+            } else {
+                // 如果不支持Clipboard API，使用降级方案
+                fallbackCopyTextToClipboard(text, fallbackLabel);
+            }
+        }
+        
+        // 降级方案：使用临时textarea元素
+        function fallbackCopyTextToClipboard(text, label) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                if (successful) {
+                    alert(label + '已复制到剪贴板');
+                } else {
+                    // 如果execCommand也失败，显示提示框
+                    prompt('请手动复制 ' + label + ':', text);
+                }
+            } catch (err) {
+                console.error('execCommand 失败:', err);
+                document.body.removeChild(textArea);
+                // 显示提示框让用户手动复制
+                prompt('请手动复制 ' + label + ':', text);
+            }
+        }
+        
+        // 添加复制到剪贴板功能
+        document.querySelectorAll('.copy').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = this.href;
+                
+                // 检查是否是复制链接操作（公开项目）
+                if (this.textContent === '复制链接') {
+                    // 复制完整链接到剪贴板
+                    const fullUrl = url.startsWith('http') ? url : window.location.origin + url;
+                    copyToClipboard(fullUrl, '链接已复制到剪贴板', '链接');
+                } else {
+                    // 复制内容到剪贴板
+                    fetch(url)
+                        .then(response => response.text())
+                        .then(text => {
+                            copyToClipboard(text, '内容已复制到剪贴板', '内容');
+                        })
+                        .catch(err => {
+                            console.error('获取内容失败:', err);
+                            alert('获取内容失败，请重试');
+                        });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

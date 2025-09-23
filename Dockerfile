@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 将应用代码复制到容器中
 COPY src/ .
 
+# 复制静态资源
+COPY static/ /static/
+
 EXPOSE 5000
 
 # 设置默认环境变量

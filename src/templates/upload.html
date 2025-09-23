@@ -1,0 +1,667 @@
+
+<!doctype html>
+<html>
+<head>
+    <title>文件管理</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #eff6ff, #f8fafc);
+            color: #0f172a;
+        }
+        a { text-decoration: none; }
+        .page-wrapper {
+            max-width: 1080px;
+            margin: 48px auto;
+            padding: 0 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: 15px;
+        }
+        .nav-actions a {
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+        .nav-actions a:hover { color: #1e3a8a; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
+        .btn:disabled { cursor: not-allowed; opacity: 0.6; box-shadow: none; }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+        }
+        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        .btn-danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25);
+        }
+        .btn-danger:hover { background: linear-gradient(90deg, #dc2626, #b91c1c); transform: translateY(-1px); }
+        .storage-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: linear-gradient(135deg, #eef2ff, #ffffff);
+        }
+        .storage-summary { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+        .storage-text { font-size: 16px; color: #1e293b; }
+        .storage-usage { font-weight: 600; color: #1d4ed8; }
+        .storage-meter {
+            width: 100%;
+            height: 12px;
+            background: rgba(148, 163, 184, 0.25);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .storage-meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #1d4ed8);
+            transition: width 0.4s ease;
+        }
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+        .alert::before {
+            content: '⚠';
+            font-size: 18px;
+        }
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .upload-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .upload-panel h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .upload-form-inner { display: flex; flex-direction: column; gap: 16px; }
+        .input-label { font-weight: 600; color: #1e293b; }
+        input[type="file"] {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(248, 250, 252, 0.9);
+            cursor: pointer;
+        }
+        input[type="file"]:hover { border-color: #2563eb; }
+        .drop-zone {
+            border: 2px dashed rgba(37, 99, 235, 0.55);
+            border-radius: 16px;
+            padding: 36px;
+            text-align: center;
+            background: rgba(59, 130, 246, 0.08);
+            transition: all 0.25s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .drop-zone::before {
+            content: '📁';
+            font-size: 32px;
+        }
+        .drop-zone.dragover {
+            background: rgba(59, 130, 246, 0.16);
+            border-color: #2563eb;
+            transform: translateY(-2px);
+        }
+        .drop-zone-text { color: #1d4ed8; font-size: 16px; font-weight: 600; }
+        .drop-zone-highlight { font-weight: 700; }
+        .drop-zone-or { color: #475569; font-size: 14px; }
+        .progress-container {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: rgba(203, 213, 225, 0.5);
+            border-radius: 999px;
+            overflow: hidden;
+            height: 16px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #34d399, #059669);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-text { text-align: center; font-size: 14px; color: #1f2937; font-weight: 600; }
+        .upload-status { font-size: 14px; color: #475569; }
+        .table-card { padding: 0; }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .table-header h2 { margin: 0; font-size: 22px; color: #0f172a; }
+        .table-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .table-wrapper { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 14px;
+        }
+        thead tr { background: rgba(248, 250, 252, 0.9); }
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+        }
+        th:first-child, td:first-child { padding-left: 24px; }
+        th:last-child, td:last-child { padding-right: 24px; }
+        tbody tr:hover { background: rgba(59, 130, 246, 0.06); }
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .actions a {
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .actions a:hover { transform: translateY(-1px); }
+        .preview { background: linear-gradient(90deg, #22c55e, #16a34a); box-shadow: 0 10px 20px rgba(34, 197, 94, 0.25); }
+        .download { background: linear-gradient(90deg, #0ea5e9, #0284c7); box-shadow: 0 10px 20px rgba(14, 165, 233, 0.25); }
+        .delete { background: linear-gradient(90deg, #ef4444, #dc2626); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3); }
+        .error { color: #b91c1c; font-weight: 600; }
+        .helper-text { font-size: 13px; color: #64748b; }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.1);
+            color: #1d4ed8;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .nav-actions { flex-wrap: wrap; }
+            .card { padding: 20px; }
+            th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) { white-space: nowrap; }
+            .table-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .table-actions { width: 100%; }
+            .actions { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <header class="header card">
+            <div>
+                <h1>文件管理</h1>
+                <p class="subtitle">拖拽、筛选与批量操作，让日常协作更顺畅。</p>
+            </div>
+            <div class="nav-actions">
+                <span class="tag">欢迎 {{ username }}</span>
+                <a href="/clipboard">网络剪贴板</a>
+                <a href="/personal_clipboard">个人剪贴板</a>
+                <a href="/logout" class="btn btn-danger">退出</a>
+            </div>
+        </header>
+
+        <section class="card storage-card">
+            <div class="storage-summary">
+                <div class="storage-text">当前存储使用情况</div>
+                <div class="storage-usage">{{ used_storage }} / {{ max_storage }} ({{ usage_percentage }}%)</div>
+            </div>
+            <div class="storage-meter" data-usage="{{ usage_percentage }}">
+                <div class="storage-meter-fill"></div>
+            </div>
+        </section>
+
+        {% if storage_warning %}
+        <div class="alert alert-warning">
+            警告: 存储空间已使用 {{ usage_percentage }}%，请考虑删除一些文件以释放空间。
+        </div>
+        {% endif %}
+
+        {% if storage_full %}
+        <div class="alert alert-error">
+            错误: 存储空间已满，无法上传更多文件。请删除一些文件以释放空间。
+        </div>
+        {% else %}
+        <section class="card upload-panel">
+            <div>
+                <h2>上传文件</h2>
+                <p class="helper-text">支持多文件批量上传，系统会自动校验容量与格式。</p>
+            </div>
+            {% if error %}
+            <p class="error">{{ error }}</p>
+            {% endif %}
+            <form id="uploadForm" method="post" enctype="multipart/form-data" class="upload-form-inner">
+                <!-- 拖拽上传区域 -->
+                <div id="dropZone" class="drop-zone">
+                    <div class="drop-zone-text"><span class="drop-zone-highlight">拖拽文件到此处</span></div>
+                    <div class="drop-zone-or">或</div>
+                    <div class="drop-zone-text">点击选择多个文件</div>
+                </div>
+
+                <div class="form-field">
+                    <label for="fileInput" class="input-label">选择文件</label>
+                    <input type="file" name="file" id="fileInput" multiple required>
+                    <p class="helper-text">建议按批次上传，方便快速撤销或重试。</p>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary" id="uploadButton">开始上传</button>
+                </div>
+            </form>
+
+            <!-- 进度条 -->
+            <div id="progressContainer" class="progress-container">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div id="progressText" class="progress-text">0%</div>
+                <div id="uploadStatus" class="upload-status"></div>
+                <button id="cancelButton" type="button" class="btn btn-danger" style="display:none;">取消上传</button>
+            </div>
+            <!-- 存储限制信息（用于前端检查） -->
+            <div id="storageInfo" style="display:none;" 
+                 data-max-storage="{{ max_storage }}" 
+                 data-used-storage="{{ used_storage }}" 
+                 data-usage-percentage="{{ usage_percentage }}">
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="card table-card">
+            <div class="table-header">
+                <h2>文件列表</h2>
+                <div class="table-actions">
+                    <button id="selectAllBtn" type="button" class="btn btn-secondary">全选</button>
+                    <button id="deselectAllBtn" type="button" class="btn btn-secondary">取消全选</button>
+                    <button id="deleteSelectedBtn" type="button" class="btn btn-danger" onclick="deleteSelectedFiles()">批量删除</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox"></th>
+                            <th>文件名</th>
+                            <th>大小</th>
+                            <th>修改时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fileTableBody">
+                        {% for file in files %}
+                        <tr>
+                            <td><input type="checkbox" class="fileCheckbox" data-filename="{{ file.name }}"></td>
+                            <td>{{ file.name }}</td>
+                            <td>{{ file.size }}</td>
+                            <td>{{ file.modified }}</td>
+                            <td class="actions">
+                                <a href="/preview/{{ file.name }}" class="preview">预览</a>
+                                <a href="/download/{{ file.name }}" class="download">下载</a>
+                                <a href="/delete/{{ file.name }}" class="delete" onclick="return confirm('确定要删除 {{ file.name }} 吗？')">删除</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    
+    <script>
+        // 文件大小转换函数
+        function parseFileSize(sizeStr) {
+            const units = {'B': 1, 'KB': 1024, 'MB': 1024*1024, 'GB': 1024*1024*1024, 'TB': 1024*1024*1024*1024};
+            const match = sizeStr.match(/^([\d.]+)\s*([A-Z]+)$/);
+            if (match) {
+                const value = parseFloat(match[1]);
+                const unit = match[2];
+                return value * (units[unit] || 1);
+            }
+            return 0;
+        }
+        
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const uploadButton = document.getElementById('uploadButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const storageInfo = document.getElementById('storageInfo');
+        const dropZone = document.getElementById('dropZone');
+        const storageMeter = document.querySelector('.storage-meter');
+
+        if (storageMeter) {
+            const usage = storageMeter.getAttribute('data-usage');
+            const meterFill = storageMeter.querySelector('.storage-meter-fill');
+            if (usage && meterFill) {
+                meterFill.style.width = `${usage}%`;
+            }
+        }
+
+        // 上传进度处理
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            startUpload(Array.from(fileInput.files));
+        });
+
+        function startUpload(files) {
+            if (!files || files.length === 0) {
+                alert('请选择至少一个文件');
+                return;
+            }
+
+            // 计算本次上传的总大小
+            const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+
+            const maxStorageBytes = parseFileSize(storageInfo.getAttribute('data-max-storage'));
+            const usedStorageBytes = parseFileSize(storageInfo.getAttribute('data-used-storage'));
+
+            if (usedStorageBytes + totalSize > maxStorageBytes) {
+                alert('本次上传的文件总大小将超出存储限制，请删除一些文件或减少上传数量。');
+                return;
+            }
+
+            progressContainer.style.display = 'block';
+            cancelButton.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+            uploadStatus.textContent = files.length > 1 ? `准备上传 ${files.length} 个文件...` : '准备上传...';
+            uploadButton.disabled = true;
+            uploadButton.value = '上传中...';
+
+            const formData = new FormData();
+            files.forEach(file => formData.append('file', file));
+
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    progressFill.style.width = percentComplete + '%';
+                    progressText.textContent = percentComplete + '%';
+                    uploadStatus.textContent = `已上传 ${formatBytes(e.loaded)} / ${formatBytes(e.total)}${files.length > 1 ? `（共 ${files.length} 个文件）` : ''}`;
+                }
+            });
+
+            xhr.addEventListener('load', function() {
+                cancelButton.style.display = 'none';
+
+                if (xhr.status !== 200) {
+                    uploadStatus.textContent = '上传失败，请重试';
+                    resetUploadState();
+                    return;
+                }
+
+                let response;
+                try {
+                    response = JSON.parse(xhr.responseText);
+                } catch (error) {
+                    uploadStatus.textContent = '服务器返回了无法解析的响应';
+                    resetUploadState();
+                    return;
+                }
+
+                const { success, uploaded, errors, storage } = response;
+
+                if (Array.isArray(uploaded) && storage && storage.used_storage) {
+                    storageInfo.setAttribute('data-used-storage', storage.used_storage);
+                }
+
+                if (success) {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = '100%';
+                    const uploadedNames = uploaded.map(item => item.name).join('，');
+                    let statusMessage = uploaded.length > 1 ? `成功上传 ${uploaded.length} 个文件：${uploadedNames}` : `成功上传 ${uploaded[0].name}`;
+                    const hasErrors = errors && errors.length > 0;
+                    if (hasErrors) {
+                        statusMessage += `。以下文件上传失败：${errors.join('；')}`;
+                    }
+                    uploadStatus.textContent = statusMessage;
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, hasErrors ? 2500 : 1200);
+                    return;
+                }
+
+                if (errors && errors.length > 0) {
+                    uploadStatus.textContent = '上传失败：' + errors.join('；');
+                } else {
+                    uploadStatus.textContent = '上传失败，请重试';
+                }
+
+                resetUploadState();
+            });
+
+            xhr.addEventListener('error', function() {
+                uploadStatus.textContent = '上传出错，请重试';
+                resetUploadState();
+            });
+
+            cancelButton.onclick = function() {
+                xhr.abort();
+                uploadStatus.textContent = '上传已取消';
+                resetUploadState();
+                setTimeout(function() {
+                    progressContainer.style.display = 'none';
+                }, 2000);
+            };
+
+            xhr.open('POST', '/upload');
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.send(formData);
+        }
+
+        function resetUploadState() {
+            uploadButton.disabled = false;
+            uploadButton.value = '上传';
+            cancelButton.style.display = 'none';
+            fileInput.value = '';
+        }
+        
+        // 格式化字节数
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 全选功能
+        document.getElementById('selectAllBtn').addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.fileCheckbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            document.getElementById('selectAllCheckbox').checked = true;
+        });
+        
+        // 取消全选功能
+        document.getElementById('deselectAllBtn').addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.fileCheckbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.getElementById('selectAllCheckbox').checked = false;
+        });
+        
+        // 表头全选框功能
+        document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.fileCheckbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+        
+        // 批量删除功能
+        function deleteSelectedFiles() {
+            const selectedCheckboxes = document.querySelectorAll('.fileCheckbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                alert('请至少选择一个文件进行删除');
+                return;
+            }
+            
+            if (!confirm(`确定要删除选中的 ${selectedCheckboxes.length} 个文件吗？`)) {
+                return;
+            }
+            
+            const filenames = Array.from(selectedCheckboxes).map(checkbox => checkbox.dataset.filename);
+            
+            fetch('/delete_selected', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({filenames: filenames})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`成功删除 ${data.deleted_count} 个文件`);
+                    // 重新加载页面以显示更新后的文件列表
+                    location.reload();
+                } else {
+                    alert('删除文件时发生错误');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除文件时发生错误');
+            });
+        }
+        
+        // 拖拽上传功能
+        // 阻止浏览器默认的拖拽行为
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        // 添加拖拽高亮效果
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        // 处理文件拖拽放下事件
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        // 点击拖拽区域时触发文件选择
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // 文件输入框变化时触发上传
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                startUpload(Array.from(this.files));
+            }
+        });
+        
+        // 阻止默认行为的函数
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // 添加高亮效果
+        function highlight() {
+            dropZone.classList.add('dragover');
+        }
+        
+        // 移除高亮效果
+        function unhighlight() {
+            dropZone.classList.remove('dragover');
+        }
+        
+        // 处理拖拽放下的文件
+        function handleDrop(e) {
+            const files = Array.from(e.dataTransfer.files || []);
+
+            if (files.length > 0) {
+                const dataTransfer = new DataTransfer();
+                files.forEach(file => dataTransfer.items.add(file));
+                fileInput.files = dataTransfer.files;
+                startUpload(files);
+            }
+        }
+    </script>
+</body>
+</html>

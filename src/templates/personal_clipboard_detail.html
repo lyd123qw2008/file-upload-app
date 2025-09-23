@@ -1,0 +1,170 @@
+
+<!doctype html>
+<html>
+<head>
+    <title>个人剪贴板 - {{ clipboard.name }}</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #eff6ff, #f8fafc);
+            color: #0f172a;
+        }
+        a { text-decoration: none; }
+        .page-wrapper {
+            max-width: 960px;
+            margin: 48px auto;
+            padding: 0 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .nav-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .nav-actions a { color: #1d4ed8; font-weight: 600; }
+        .nav-actions a:hover { color: #1e3a8a; }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.1);
+            color: #1d4ed8;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.08);
+            color: #1f2937;
+        }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+        }
+        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
+        .btn-danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25);
+        }
+        .btn-danger:hover { background: linear-gradient(90deg, #dc2626, #b91c1c); transform: translateY(-1px); }
+        .info-card {
+            background: linear-gradient(135deg, #eef2ff, #ffffff);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 15px;
+            color: #1e293b;
+        }
+        .info-card strong { color: #0f172a; }
+        .helper-text { font-size: 13px; color: #64748b; }
+        form { display: flex; flex-direction: column; gap: 18px; }
+        textarea {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(248, 250, 252, 0.9);
+            font-size: 15px;
+            min-height: 320px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .alert {
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .alert::before { content: '⚠'; font-size: 18px; }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .nav-actions { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <header class="header card">
+            <div>
+                <h1>个人剪贴板 - {{ clipboard.name }}</h1>
+                <p class="subtitle">实时保存每次改动，适合维护个人配置片段。</p>
+            </div>
+            <div class="nav-actions">
+                <span class="tag">当前用户 {{ username }}</span>
+                <a href="/personal_clipboard">返回列表</a>
+                <a href="/personal_clipboard/{{ clipboard.id }}">刷新</a>
+                <a href="/logout" class="btn btn-danger">退出</a>
+            </div>
+        </header>
+
+        <section class="card info-card">
+            <div><strong>创建时间:</strong> {{ clipboard.created_at[:19].replace('T', ' ') }}</div>
+            <div><strong>最后更新:</strong> {{ clipboard.updated_at[:19].replace('T', ' ') }}</div>
+        </section>
+
+        <section class="card">
+            <h2 style="margin-top:0;font-size:22px;color:#0f172a;">编辑内容</h2>
+            <p class="helper-text" style="margin-top:4px;margin-bottom:20px;">支持 Markdown 与代码片段，保存后立即生效。</p>
+            {% if error %}
+            <div class="alert">错误: {{ error }}</div>
+            {% endif %}
+            <form method="post">
+                <textarea name="content" rows="15">{{ clipboard.content }}</textarea>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                    <button type="submit" class="btn btn-primary">保存内容</button>
+                    <a href="/personal_clipboard" class="btn btn-secondary">返回上一页</a>
+                </div>
+            </form>
+        </section>
+    </div>
+</body>
+</html>
