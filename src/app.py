@@ -276,178 +276,6 @@ def delete_clipboard_item(item_id, username):
     save_clipboard_data(data)
 
 # 登录页面模板
-login_template = '''
-<!doctype html>
-<html>
-<head>
-    <title>登录</title>
-    <meta charset="utf-8">
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(120deg, #eff6ff, #f8fafc);
-            color: #0f172a;
-        }
-        .auth-shell {
-            width: 100%;
-            max-width: 420px;
-            padding: 32px 24px 48px;
-        }
-        .auth-card {
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 32px;
-            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
-            border: 1px solid rgba(148, 163, 184, 0.16);
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 700;
-            color: #0f172a;
-        }
-        .subtitle {
-            margin: 0;
-            font-size: 15px;
-            color: #475569;
-        }
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-        label { font-weight: 600; color: #1e293b; }
-        .input-group { display: flex; flex-direction: column; gap: 8px; }
-        input[type="text"], input[type="password"] {
-            width: 100%;
-            padding: 14px 16px;
-            border-radius: 14px;
-            border: 1px solid rgba(148, 163, 184, 0.6);
-            background: rgba(248, 250, 252, 0.9);
-            font-size: 15px;
-        }
-        input[type="text"]:focus, input[type="password"]:focus {
-            outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-        .captcha-row {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .captcha-input {
-            flex: 1;
-            min-width: 180px;
-        }
-        .captcha-image {
-            border-radius: 12px;
-            border: 1px solid rgba(148, 163, 184, 0.6);
-            height: 48px;
-            cursor: pointer;
-        }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 12px 20px;
-            border-radius: 999px;
-            font-size: 15px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
-        }
-        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
-        .btn-primary {
-            background: linear-gradient(90deg, #2563eb, #1d4ed8);
-            color: #ffffff;
-            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
-        }
-        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
-        .btn-secondary {
-            background: rgba(15, 23, 42, 0.08);
-            color: #1f2937;
-        }
-        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
-        .alert {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
-            border-radius: 14px;
-            padding: 14px 18px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        .helper-footer {
-            font-size: 13px;
-            color: #64748b;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <div class="auth-shell">
-        <div class="auth-card">
-            <div>
-                <h1>文件上传系统</h1>
-                <p class="subtitle">请输入账号信息完成身份验证。</p>
-            </div>
-            {% if error %}
-            <div class="alert">{{ error }}</div>
-            {% endif %}
-            <form method="post">
-                <div class="input-group">
-                    <label for="username">用户名</label>
-                    <input type="text" name="username" id="username" placeholder="输入用户名" required>
-                </div>
-                <div class="input-group">
-                    <label for="password">密码</label>
-                    <input type="password" name="password" id="password" placeholder="输入密码" required>
-                </div>
-                <div class="input-group">
-                    <label for="captcha">验证码</label>
-                    <div class="captcha-row">
-                        <input type="text" name="captcha" id="captcha" class="captcha-input" placeholder="请输入验证码" required>
-                        <img src="{{ captcha_image }}" alt="验证码" class="captcha-image" onclick="refreshCaptcha()" title="点击刷新验证码">
-                        <button type="button" class="btn btn-secondary" onclick="refreshCaptcha()">刷新</button>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary">登录系统</button>
-            </form>
-            <p class="helper-footer">多次失败会触发验证码刷新，请妥善保管管理员凭证。</p>
-        </div>
-    </div>
-
-    <script>
-        function refreshCaptcha() {
-            // 添加时间戳防止缓存
-            const timestamp = new Date().getTime();
-            fetch('/captcha?' + timestamp)
-                .then(response => response.json())
-                .then(data => {
-                    document.querySelector('.captcha-image').src = data.captcha_image;
-                })
-                .catch(error => {
-                    console.error('获取验证码失败:', error);
-                });
-        }
-    </script>
-</body>
-</html>
-'''
-
 # 允许的文件扩展名
 ALLOWED_EXTENSIONS = {
     'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx', 
@@ -485,7 +313,7 @@ def login():
             current_captcha = session.get('captcha', generate_captcha_text())
             session['captcha'] = current_captcha  # 确保session中有验证码
             captcha_image = generate_captcha_image(current_captcha)
-            return render_template_string(login_template, captcha_image=captcha_image, error='请填写完整的登录信息')
+            return render_template('login.html', captcha_image=captcha_image, error='请填写完整的登录信息')
 
         username = request.form['username']
         password = request.form['password']
@@ -504,7 +332,7 @@ def login():
             captcha_image = generate_captcha_image(captcha_text)
             logger.debug("Captcha validation failed for user: %s", username)
             logger.debug("Generated new captcha: %s", captcha_text)
-            return render_template_string(login_template, captcha_image=captcha_image, error='验证码错误，请重新输入')
+            return render_template('login.html', captcha_image=captcha_image, error='验证码错误，请重新输入')
 
         # 验证用户凭据
         if username in users and check_password_hash(users[username], password):
@@ -519,13 +347,13 @@ def login():
             session['captcha'] = captcha_text
             captcha_image = generate_captcha_image(captcha_text)
             logger.debug("Login failed for user: %s", username)
-            return render_template_string(login_template, captcha_image=captcha_image, error='无效的用户名或密码')
+            return render_template('login.html', captcha_image=captcha_image, error='无效的用户名或密码')
 
     # GET请求 - 生成初始验证码
     captcha_text = generate_captcha_text()
     session['captcha'] = captcha_text
     captcha_image = generate_captcha_image(captcha_text)
-    return render_template_string(login_template, captcha_image=captcha_image)
+    return render_template('login.html', captcha_image=captcha_image)
 
 # 登出路由
 @app.route('/logout')
