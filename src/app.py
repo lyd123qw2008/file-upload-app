@@ -197,8 +197,13 @@ def create_personal_clipboard(name, content, creator):
 # 获取用户创建的个人剪贴板
 def get_user_personal_clipboards(username):
     data = load_personal_clipboard_data()
-    return [clipboard for clipboard in data["personal_clipboards"] 
-            if clipboard["creator"] == username]
+    user_clipboards = [clipboard for clipboard in data["personal_clipboards"]
+                       if clipboard["creator"] == username]
+
+    def _sort_key(clipboard: dict) -> str:
+        return clipboard.get("updated_at") or clipboard.get("created_at") or ""
+
+    return sorted(user_clipboards, key=_sort_key, reverse=True)
 
 # 获取特定个人剪贴板
 def get_personal_clipboard(clipboard_id, username):

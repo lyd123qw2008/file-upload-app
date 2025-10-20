@@ -5,258 +5,6 @@
     <title>文件管理</title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(120deg, #eff6ff, #f8fafc);
-            color: #0f172a;
-        }
-        a { text-decoration: none; }
-        .page-wrapper {
-            max-width: 1080px;
-            margin: 48px auto;
-            padding: 0 24px 48px;
-            display: flex;
-            flex-direction: column;
-            gap: 32px;
-        }
-        .card {
-            background: #ffffff;
-            border-radius: 18px;
-            padding: 24px;
-            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
-            border: 1px solid rgba(148, 163, 184, 0.16);
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 24px;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 32px;
-            font-weight: 700;
-            color: #0f172a;
-        }
-        .nav-actions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            font-size: 15px;
-        }
-        .nav-actions a {
-            color: #1d4ed8;
-            font-weight: 600;
-        }
-        .nav-actions a:hover { color: #1e3a8a; }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 10px 20px;
-            border-radius: 999px;
-            font-size: 14px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
-        }
-        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35); }
-        .btn:disabled { cursor: not-allowed; opacity: 0.6; box-shadow: none; }
-        .btn-primary {
-            background: linear-gradient(90deg, #2563eb, #1d4ed8);
-            color: #ffffff;
-            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
-        }
-        .btn-primary:hover { background: linear-gradient(90deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
-        .btn-secondary {
-            background: rgba(15, 23, 42, 0.08);
-            color: #1f2937;
-        }
-        .btn-secondary:hover { background: rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
-        .btn-danger {
-            background: linear-gradient(90deg, #ef4444, #dc2626);
-            color: #ffffff;
-            box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25);
-        }
-        .btn-danger:hover { background: linear-gradient(90deg, #dc2626, #b91c1c); transform: translateY(-1px); }
-        .storage-card {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            background: linear-gradient(135deg, #eef2ff, #ffffff);
-        }
-        .storage-summary { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
-        .storage-text { font-size: 16px; color: #1e293b; }
-        .storage-usage { font-weight: 600; color: #1d4ed8; }
-        .storage-meter {
-            width: 100%;
-            height: 12px;
-            background: rgba(148, 163, 184, 0.25);
-            border-radius: 999px;
-            overflow: hidden;
-        }
-        .storage-meter-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #38bdf8, #1d4ed8);
-            transition: width 0.4s ease;
-        }
-        .alert {
-            padding: 16px 20px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 500;
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-            margin-bottom: 24px;
-        }
-        .alert::before {
-            content: '⚠';
-            font-size: 18px;
-        }
-        .alert-warning {
-            background: #fef3c7;
-            color: #92400e;
-            border: 1px solid #fcd34d;
-        }
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
-        }
-        .upload-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .upload-panel h2 { margin: 0; font-size: 22px; color: #0f172a; }
-        .upload-form-inner { display: flex; flex-direction: column; gap: 16px; }
-        .input-label { font-weight: 600; color: #1e293b; }
-        input[type="file"] {
-            width: 100%;
-            padding: 16px;
-            border-radius: 14px;
-            border: 1px solid rgba(148, 163, 184, 0.6);
-            background: rgba(248, 250, 252, 0.9);
-            cursor: pointer;
-        }
-        input[type="file"]:hover { border-color: #2563eb; }
-        .drop-zone {
-            border: 2px dashed rgba(37, 99, 235, 0.55);
-            border-radius: 16px;
-            padding: 36px;
-            text-align: center;
-            background: rgba(59, 130, 246, 0.08);
-            transition: all 0.25s ease;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .drop-zone::before {
-            content: '📁';
-            font-size: 32px;
-        }
-        .drop-zone.dragover {
-            background: rgba(59, 130, 246, 0.16);
-            border-color: #2563eb;
-            transform: translateY(-2px);
-        }
-        .drop-zone-text { color: #1d4ed8; font-size: 16px; font-weight: 600; }
-        .drop-zone-highlight { font-weight: 700; }
-        .drop-zone-or { color: #475569; font-size: 14px; }
-        .progress-container {
-            display: none;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .progress-bar {
-            width: 100%;
-            background-color: rgba(203, 213, 225, 0.5);
-            border-radius: 999px;
-            overflow: hidden;
-            height: 16px;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #34d399, #059669);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        .progress-text { text-align: center; font-size: 14px; color: #1f2937; font-weight: 600; }
-        .upload-status { font-size: 14px; color: #475569; }
-        .table-card { padding: 0; }
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 24px;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
-        }
-        .table-header h2 { margin: 0; font-size: 22px; color: #0f172a; }
-        .table-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-        .table-wrapper { overflow-x: auto; }
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            font-size: 14px;
-        }
-        thead tr { background: rgba(248, 250, 252, 0.9); }
-        th, td {
-            padding: 16px 20px;
-            text-align: left;
-            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-        }
-        th:first-child, td:first-child { padding-left: 24px; }
-        th:last-child, td:last-child { padding-right: 24px; }
-        tbody tr:hover { background: rgba(59, 130, 246, 0.06); }
-        .actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .actions a {
-            padding: 8px 14px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #ffffff;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        .actions a:hover { transform: translateY(-1px); }
-        .preview { background: linear-gradient(90deg, #22c55e, #16a34a); box-shadow: 0 10px 20px rgba(34, 197, 94, 0.25); }
-        .download { background: linear-gradient(90deg, #0ea5e9, #0284c7); box-shadow: 0 10px 20px rgba(14, 165, 233, 0.25); }
-        .delete { background: linear-gradient(90deg, #ef4444, #dc2626); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3); }
-        .error { color: #b91c1c; font-weight: 600; }
-        .helper-text { font-size: 13px; color: #64748b; }
-        .tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(37, 99, 235, 0.1);
-            color: #1d4ed8;
-            font-size: 13px;
-            font-weight: 600;
-        }
-        @media (max-width: 768px) {
-            .header { flex-direction: column; align-items: flex-start; }
-            .nav-actions { flex-wrap: wrap; }
-            .card { padding: 20px; }
-            th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) { white-space: nowrap; }
-            .table-header { flex-direction: column; align-items: flex-start; gap: 16px; }
-            .table-actions { width: 100%; }
-            .actions { width: 100%; }
-        }
-    </style>
 </head>
 <body>
     <div class="page-wrapper">
@@ -267,8 +15,8 @@
             </div>
             <div class="nav-actions">
                 <span class="tag">欢迎 {{ username }}</span>
-                <a href="/clipboard">网络剪贴板</a>
-                <a href="/personal_clipboard">个人剪贴板</a>
+                <a href="/clipboard" class="nav-pill">网络剪贴板</a>
+                <a href="/personal_clipboard" class="nav-pill">个人剪贴板</a>
                 <a href="/logout" class="btn btn-danger">退出</a>
             </div>
         </header>
@@ -296,8 +44,8 @@
         {% else %}
         <section class="card upload-panel">
             <div>
-                <h2>上传文件</h2>
-                <p class="helper-text">支持多文件批量上传，系统会自动校验容量与格式。</p>
+                <h2 class="section-title">上传文件</h2>
+                <p class="helper-text section-subtitle">支持多文件批量上传，系统会自动校验容量与格式。</p>
             </div>
             {% if error %}
             <p class="error">{{ error }}</p>
@@ -327,10 +75,10 @@
                 </div>
                 <div id="progressText" class="progress-text">0%</div>
                 <div id="uploadStatus" class="upload-status"></div>
-                <button id="cancelButton" type="button" class="btn btn-danger" style="display:none;">取消上传</button>
+                <button id="cancelButton" type="button" class="btn btn-danger is-hidden">取消上传</button>
             </div>
             <!-- 存储限制信息（用于前端检查） -->
-            <div id="storageInfo" style="display:none;" 
+            <div id="storageInfo" class="is-hidden" 
                  data-max-storage="{{ max_storage }}" 
                  data-used-storage="{{ used_storage }}" 
                  data-usage-percentage="{{ usage_percentage }}">
@@ -340,7 +88,7 @@
 
         <section class="card table-card">
             <div class="table-header">
-                <h2>文件列表</h2>
+                <h2 class="section-title">文件列表</h2>
                 <div class="table-actions">
                     <button id="selectAllBtn" type="button" class="btn btn-secondary">全选</button>
                     <button id="deselectAllBtn" type="button" class="btn btn-secondary">取消全选</button>
@@ -351,7 +99,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox"></th>
+                            <th class="table-checkbox-cell"><input type="checkbox" id="selectAllCheckbox"></th>
                             <th>文件名</th>
                             <th>大小</th>
                             <th>修改时间</th>
@@ -361,14 +109,14 @@
                     <tbody id="fileTableBody">
                         {% for file in files %}
                         <tr>
-                            <td><input type="checkbox" class="fileCheckbox" data-filename="{{ file.name }}"></td>
-                            <td>{{ file.name }}</td>
+                            <td class="table-checkbox-cell"><input type="checkbox" class="fileCheckbox" data-filename="{{ file.name }}"></td>
+                            <td class="content-preview">{{ file.name }}</td>
                             <td>{{ file.size }}</td>
                             <td>{{ file.modified }}</td>
                             <td class="actions">
-                                <a href="/preview/{{ file.name }}" class="preview">预览</a>
-                                <a href="/download/{{ file.name }}" class="download">下载</a>
-                                <a href="/delete/{{ file.name }}" class="delete" onclick="return confirm('确定要删除 {{ file.name }} 吗？')">删除</a>
+                                <a href="/preview/{{ file.name }}" class="btn btn-success preview-action">预览</a>
+                                <a href="/download/{{ file.name }}" class="btn btn-primary download-action">下载</a>
+                                <a href="/delete/{{ file.name }}" class="btn btn-danger delete-action" onclick="return confirm('确定要删除 {{ file.name }} 吗？')">删除</a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -435,7 +183,7 @@
             }
 
             progressContainer.style.display = 'block';
-            cancelButton.style.display = 'block';
+            cancelButton.classList.remove('is-hidden');
             progressFill.style.width = '0%';
             progressText.textContent = '0%';
             uploadStatus.textContent = files.length > 1 ? `准备上传 ${files.length} 个文件...` : '准备上传...';
@@ -457,7 +205,7 @@
             });
 
             xhr.addEventListener('load', function() {
-                cancelButton.style.display = 'none';
+                cancelButton.classList.add('is-hidden');
 
                 if (xhr.status !== 200) {
                     uploadStatus.textContent = '上传失败，请重试';
@@ -527,7 +275,7 @@
         function resetUploadState() {
             uploadButton.disabled = false;
             uploadButton.value = '上传';
-            cancelButton.style.display = 'none';
+            cancelButton.classList.add('is-hidden');
             fileInput.value = '';
         }
         

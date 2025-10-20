@@ -6,6 +6,7 @@ services:
     volumes:
       - ./uploads:/uploads
       - ./src:/app  # 将本地源代码挂载到容器中，便于开发时实时更新
+      - ./static:/static  # 挂载静态资源，确保前端改动即时生效
       - ./tests:/tests  # 将测试目录挂载到容器中，便于开发时运行测试
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
